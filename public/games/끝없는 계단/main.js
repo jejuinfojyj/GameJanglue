@@ -16,6 +16,7 @@ const recordLine = document.getElementById('record-line');
 const heroList = document.getElementById('hero-list');
 const petList = document.getElementById('pet-list');
 const soundToggle = document.getElementById('sound-toggle');
+const stepControls = document.getElementById('step-controls');
 
 const queue = [];
 let runner = null, lastMode = '', resultAt = 0;
@@ -62,28 +63,47 @@ runner = mountGame({
 });
 
 function syncOverlay(mode) {
+  stepControls.hidden = mode !== 'play';
   const showShop = mode === 'start' || mode === 'result';
   shop.hidden = !showShop;
   recordLine.hidden = !showShop;
   refreshShop();
 }
 
+function enqueueStep(direction) {
+  unlockAudio();
+  if (runner.mode !== 'play' || runner.state.phase !== 'play') return;
+  queue.push(direction);
+  canvas.focus({ preventScroll: true });
+}
+
 // Screen halves correspond to actual left/right movement, regardless of facing.
 canvas.addEventListener('pointerdown', event => {
-  unlockAudio();
-  if (runner.mode !== 'play') return;
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   const rect = canvas.getBoundingClientRect();
-  queue.push((event.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
+  enqueueStep((event.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
 });
 
+for (const button of stepControls.querySelectorAll('[data-step]')) {
+  button.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.preventDefault();
+    enqueueStep(button.dataset.step);
+  });
+  // Keyboard and assistive-technology clicks have no pointer click count.
+  button.addEventListener('click', event => {
+    if (event.detail === 0) enqueueStep(button.dataset.step);
+  });
+}
+
 window.addEventListener('keydown', event => {
-  if (event.target.closest?.('dialog,input,textarea,select,button,summary,a,#maker-guide')) return;
+  if (event.target.closest?.('dialog,input,textarea,select,summary,a,#maker-guide')) return;
+  if (event.target.closest?.('button') && !event.target.closest?.('[data-step]')) return;
   if (event.repeat) return;
   const key = event.key.toLowerCase();
   if (runner.mode === 'play') {
-    if (KEYS.left.includes(key)) queue.push('left');
-    else if (KEYS.right.includes(key)) queue.push('right');
+    if (KEYS.left.includes(key)) { event.preventDefault(); enqueueStep('left'); }
+    else if (KEYS.right.includes(key)) { event.preventDefault(); enqueueStep('right'); }
     return;
   }
   if ((key === 'enter' || key === ' ') && runner.mode !== 'pause' && performance.now() - resultAt > 700) {

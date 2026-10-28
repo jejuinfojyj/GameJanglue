@@ -9,8 +9,8 @@ import {
   hoopRects,
 } from './game.mjs';
 
-const W = CONFIG.width;
-const H = CONFIG.height;
+const W = CONFIG.viewWidth;
+const H = CONFIG.viewHeight;
 const P = CONFIG.palette;
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -116,16 +116,16 @@ function drawCarBody(ctx, car, previewScale = 1) {
 
 function drawArena(ctx, mode) {
   // sky
-  const g = ctx.createLinearGradient(0, 0, 0, H);
+  const g = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
   g.addColorStop(0, '#10263a');
   g.addColorStop(0.55, '#17324a');
   g.addColorStop(1, '#1c3a2e');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
 
   // crowd lights
   ctx.fillStyle = '#ffffff10';
-  for (let i = 0; i < 8; i += 1) {
+  for (let i = 0; i < 12; i += 1) {
     ctx.beginPath();
     ctx.arc(80 + i * 110, 28, 18, 0, Math.PI * 2);
     ctx.fill();
@@ -133,17 +133,17 @@ function drawArena(ctx, mode) {
 
   // floor
   ctx.fillStyle = '#2f6b45';
-  ctx.fillRect(0, CONFIG.floorY, W, H - CONFIG.floorY);
+  ctx.fillRect(0, CONFIG.floorY, CONFIG.width, CONFIG.height - CONFIG.floorY);
   ctx.fillStyle = '#3f8656';
-  for (let x = 0; x < W; x += 48) ctx.fillRect(x, CONFIG.floorY, 24, 8);
+  for (let x = 0; x < CONFIG.width; x += 48) ctx.fillRect(x, CONFIG.floorY, 24, 8);
   ctx.strokeStyle = '#d7ffe288';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(W / 2, CONFIG.floorY);
-  ctx.lineTo(W / 2, CONFIG.ceilingY + 20);
+  ctx.moveTo(CONFIG.width / 2, CONFIG.floorY);
+  ctx.lineTo(CONFIG.width / 2, CONFIG.ceilingY + 20);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(W / 2, CONFIG.floorY, 70, Math.PI, 0);
+  ctx.arc(CONFIG.width / 2, CONFIG.floorY, 70, Math.PI, 0);
   ctx.stroke();
 
   if (mode.kind === 'soccer') {
@@ -444,6 +444,13 @@ function drawMatch(ctx, state) {
   const m = state.match;
   state.ui = [];
   state.controlZones = [];
+  ctx.fillStyle = P.background;
+  ctx.fillRect(0, 0, W, H);
+  // Only the world is scaled. HUD and input zones stay in viewport coordinates.
+  const scale = Math.min(W / CONFIG.width, CONFIG.arenaViewHeight / CONFIG.height);
+  ctx.save();
+  ctx.translate((W - CONFIG.width * scale) / 2, (CONFIG.arenaViewHeight - CONFIG.height * scale) / 2);
+  ctx.scale(scale, scale);
   drawArena(ctx, m.mode);
 
   for (const t of m.trails) {
@@ -485,6 +492,7 @@ function drawMatch(ctx, state) {
     ctx.fillRect(p.x, p.y, 5, 5);
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
 
   // HUD
   ctx.fillStyle = '#0007';
@@ -541,18 +549,28 @@ function drawMatch(ctx, state) {
     ctx.fillText(m.toast, W / 2, 116);
   }
 
-  // controls
+  // Controls have their own strip beneath the playable world.
+  ctx.fillStyle = '#091725';
+  ctx.fillRect(0, CONFIG.arenaViewHeight, W, H - CONFIG.arenaViewHeight);
+  ctx.strokeStyle = '#294556';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, CONFIG.arenaViewHeight);
+  ctx.lineTo(W, CONFIG.arenaViewHeight);
+  ctx.stroke();
   const zones = [
-    { x: 24, y: H - 100, w: 96, h: 78, action: 'left', label: '◀' },
-    { x: 132, y: H - 100, w: 96, h: 78, action: 'right', label: '▶' },
-    { x: W - 236, y: H - 100, w: 96, h: 78, action: 'jump', label: '점프' },
-    { x: W - 124, y: H - 100, w: 100, h: 78, action: 'boost', label: '부스트' },
+    { x: 24, y: H - 88, w: 96, h: 76, action: 'left', label: '◀' },
+    { x: 132, y: H - 88, w: 96, h: 76, action: 'right', label: '▶' },
+    { x: W - 356, y: H - 88, w: 100, h: 76, action: 'up', label: '↑ 상승' },
+    { x: W - 244, y: H - 88, w: 100, h: 76, action: 'jump', label: '점프' },
+    { x: W - 132, y: H - 88, w: 108, h: 76, action: 'boost', label: '부스트' },
   ];
   state.controlZones = zones;
   for (const z of zones) {
     const on =
       (z.action === 'left' && (state._padLeft || false)) ||
       (z.action === 'right' && state._padRight) ||
+      (z.action === 'up' && state._padUp) ||
       (z.action === 'jump' && state._padJump) ||
       (z.action === 'boost' && state._padBoost);
     ctx.fillStyle = on ? '#00e5a855' : '#0007';
@@ -564,6 +582,11 @@ function drawMatch(ctx, state) {
     ctx.textBaseline = 'middle';
     ctx.fillText(z.label, z.x + z.w / 2, z.y + z.h / 2);
   }
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#b7c9da';
+  ctx.font = '600 13px "Malgun Gothic", sans-serif';
+  ctx.fillText('상승: 자동 점프 + 위로 부스트', 414, H - 53);
+  ctx.fillText('A/D 이동 · W/↑ 상승 · Space 점프', 414, H - 29);
 }
 
 function render(ctx, state) {
@@ -595,19 +618,22 @@ function update(state, dt, input) {
   // visual pad feedback
   state._padLeft = false;
   state._padRight = false;
+  state._padUp = false;
   state._padJump = false;
   state._padBoost = false;
   if (state.screen === 'match') {
     const keys = input.keys;
     if (keys.has('arrowleft') || keys.has('a')) state._padLeft = true;
     if (keys.has('arrowright') || keys.has('d')) state._padRight = true;
-    if (keys.has(' ') || keys.has('w') || keys.has('arrowup')) state._padJump = true;
+    if (keys.has(' ')) state._padJump = true;
+    if (keys.has('w') || keys.has('arrowup')) state._padUp = state._padBoost = true;
     if (keys.has('shift') || keys.has('e') || keys.has('f')) state._padBoost = true;
     for (const p of input.pointers) {
       for (const z of state.controlZones || []) {
         if (p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h) {
           if (z.action === 'left') state._padLeft = true;
           if (z.action === 'right') state._padRight = true;
+          if (z.action === 'up') state._padUp = state._padBoost = true;
           if (z.action === 'jump') state._padJump = true;
           if (z.action === 'boost') state._padBoost = true;
         }
@@ -620,9 +646,9 @@ function update(state, dt, input) {
 mountGame({
   title: CONFIG.title,
   description:
-    '2D 로켓카 축구! 파란 차를 조종해 오른쪽 주황 골대를 공격하세요. 후프스에서는 중앙 후프 쪽으로 공을 밀면 슛 궤적으로 떠오릅니다. 한 판 약 2분.',
+    '넓어진 경기장에서 즐기는 2D 로켓카 축구! 파란 차로 오른쪽 주황 골대를 공격하세요. 상승을 누르면 자동으로 점프하고 위로 부스트합니다. 후프스는 중앙 후프에 공을 넣으세요. 한 판 약 2분.',
   controls:
-    '터치: ◀▶ 이동 · 점프 · 부스트 / 키보드: A·D 이동, W·Space 점프, Shift·E 부스트. 로비에서 모드·차고·시즌 패스를 고르세요.',
+    '터치: ◀▶ 이동 · ↑ 상승(자동 점프+부스트) · 점프(두 번 가능) · 부스트 / 키보드: A·D/←·→ 이동, W/↑ 상승, Space 점프, Shift·E 부스트. 이동과 상승을 함께 누르면 대각선으로 날아갑니다.',
   width: W,
   height: H,
   theme: {
