@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {createGame,updateGame} from '../../public/games/8ea04c1db39a/game.mjs';
-import {createGame as waterGame,updateGame as waterUpdate,SHORTCUTS} from '../../public/games/b32e0b008dea/game.mjs';
+import {createGame,updateGame} from '../../public/games/로켓 리그 사이드와이프/game.mjs';
+import {createGame as waterGame,updateGame as waterUpdate,SHORTCUTS} from '../../public/games/워터슬라이드 레이스/game.mjs';
 globalThis.localStorage={getItem(){return null;},setItem(){}};
 const input=()=>({keys:new Set(),pressed:new Set(),pointer:{x:0,y:0,down:false,inside:false,pressed:false},pointers:[]});
 function rocket(mode,dt){const s=createGame();s._pendingAction={action:'mode',value:mode};updateGame(s,dt,input());return s;}

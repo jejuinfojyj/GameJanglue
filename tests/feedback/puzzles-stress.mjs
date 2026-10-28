@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createGame as fruitGame, updateGame as fruitStep } from '../../public/games/88140a952e84/game.mjs';
-import { CONFIG as fruitConfig, FRUITS } from '../../public/games/88140a952e84/config.mjs';
-import { createGame as royalGame, updateGame as royalStep, tileVisuals } from '../../public/games/5b230b06de8e/game.mjs';
+import { createGame as fruitGame, updateGame as fruitStep } from '../../public/games/수박게임/game.mjs';
+import { CONFIG as fruitConfig, FRUITS } from '../../public/games/수박게임/config.mjs';
+import { createGame as royalGame, updateGame as royalStep, tileVisuals } from '../../public/games/로얄매치/game.mjs';
 
 let seed = 27451;
 Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);

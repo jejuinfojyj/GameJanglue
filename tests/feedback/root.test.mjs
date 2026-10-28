@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame as gossip, updateGame as updateGossip } from '../../public/games/fe74a8af3d3d/game.mjs';
-import { createGame as stairs, updateGame as updateStairs } from '../../public/games/130dd41b811f/game.mjs';
+import { createGame as gossip, updateGame as updateGossip } from '../../public/games/가십하버/game.mjs';
+import { createGame as stairs, updateGame as updateStairs } from '../../public/games/끝없는 계단/game.mjs';
 
 const idle = () => ({ pressed: new Set(), keys: new Set(), pointer: {} });
 let saved = null;

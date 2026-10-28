@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createGame, updateGame, hoopRects } from '../../public/games/8ea04c1db39a/game.mjs';
-import { CONFIG } from '../../public/games/8ea04c1db39a/config.mjs';
-import { createGame as waterGame, updateGame as waterUpdate, SHORTCUTS, handleCanvasTap } from '../../public/games/b32e0b008dea/game.mjs';
+import { createGame, updateGame, hoopRects } from '../../public/games/로켓 리그 사이드와이프/game.mjs';
+import { CONFIG } from '../../public/games/로켓 리그 사이드와이프/config.mjs';
+import { createGame as waterGame, updateGame as waterUpdate, SHORTCUTS, handleCanvasTap } from '../../public/games/워터슬라이드 레이스/game.mjs';
 globalThis.localStorage = { getItem() { return null; }, setItem() {} };
 const input = () => ({ keys: new Set(), pressed: new Set(), pointer: {x:0,y:0,down:false,inside:false,pressed:false}, pointers:[] });
 function rocket(mode) {
