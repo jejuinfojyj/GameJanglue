@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import {createGame,updateGame} from '../../public/games/8ea04c1db39a/game.mjs';
-import {createGame as waterGame,updateGame as waterUpdate,SHORTCUTS} from '../../public/games/b32e0b008dea/game.mjs';
+import {createGame,updateGame} from '../../public/games/로켓 리그 사이드와이프/game.mjs';
+import {CONFIG} from '../../public/games/로켓 리그 사이드와이프/config.mjs';
+import {createGame as waterGame,updateGame as waterUpdate,SHORTCUTS} from '../../public/games/워터슬라이드 레이스/game.mjs';
 globalThis.localStorage={getItem(){return null;},setItem(){}};
 const input=()=>({keys:new Set(),pressed:new Set(),pointer:{x:0,y:0,down:false,inside:false,pressed:false},pointers:[]});
 function rocket(mode,dt){const s=createGame();s._pendingAction={action:'mode',value:mode};updateGame(s,dt,input());return s;}
@@ -15,8 +16,8 @@ for(const hz of [30,60,120]){
  }
  for(const direction of [-1,1]){
   const s=rocket('hoops',dt);s.match.kickoff=0;s.match.cars=s.match.cars.filter(c=>c.isPlayer);
-  const c=s.match.cars[0];Object.assign(c,{x:480-direction*160,y:454,vx:direction*190,angle:direction>0?0:Math.PI});
-  s.match.ball={x:480-direction*75,y:448,vx:0,vy:0,r:22};const i=input();i.keys.add(direction>0?'d':'a');
+  const c=s.match.cars[0];Object.assign(c,{x:CONFIG.width/2-direction*160,y:CONFIG.floorY-CONFIG.carHalfH,vx:direction*190,angle:direction>0?0:Math.PI});
+  s.match.ball={x:CONFIG.width/2-direction*75,y:CONFIG.floorY-CONFIG.ballRadius,vx:0,vy:0,r:CONFIG.ballRadius};const i=input();i.keys.add(direction>0?'d':'a');
   for(let f=0;f<hz*4&&!s.match.score[0];f++)updateGame(s,dt,i);
   assert.equal(s.match.score[0],1,`${hz}Hz hoop direction ${direction} missed`);
   console.log(`PASS ${hz}Hz physical hoop shot from ${direction>0?'left':'right'}`);
@@ -39,8 +40,8 @@ for(const team of [0,1]){
  const s=rocket('soccer2v2',1/120);s.match.kickoff=0;s.match.playerActiveTimer=0;
  s.match.cars=s.match.cars.filter(c=>!c.isPlayer);const teammates=s.match.cars.filter(c=>c.team===team);
  if(teammates.length<2)continue;
- const [attacker,defender]=teammates;Object.assign(attacker,{x:680,y:456,vx:0,angle:Math.PI});Object.assign(defender,{x:800,y:455,vx:0,angle:Math.PI});
- s.match.ball={x:600,y:448,vx:0,vy:0,r:22};updateGame(s,1/120,input());
+ const [attacker,defender]=teammates;Object.assign(attacker,{x:CONFIG.width/2+200,y:CONFIG.floorY-CONFIG.carHalfH+2,vx:0,angle:Math.PI});Object.assign(defender,{x:CONFIG.width/2+320,y:CONFIG.floorY-CONFIG.carHalfH+1,vx:0,angle:Math.PI});
+ s.match.ball={x:CONFIG.width/2+120,y:CONFIG.floorY-CONFIG.ballRadius,vx:0,vy:0,r:CONFIG.ballRadius};updateGame(s,1/120,input());
  assert.ok(attacker.vx<0,'near AI should attack left');assert.ok(defender.vx>0,'far AI should recover right to defend');
  console.log('PASS 2v2 one attacker and one defender choose opposite actions');
 }

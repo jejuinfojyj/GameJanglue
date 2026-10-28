@@ -121,9 +121,9 @@ function dropFruit(state) {
     y,
     vx: 0,
     vy: 20,
+    angle: 0,
+    angularVelocity: 0,
     age: 0,
-    pop: 0,
-    squash: 0,
   });
   state.dropped = true;
   state.hold = state.next;
@@ -166,52 +166,75 @@ function resolvePair(a, b) {
     a.vy -= (impulse * ny) / massA;
     b.vx += (impulse * nx) / massB;
     b.vy += (impulse * ny) / massB;
-    // Friction is limited by the actual normal impulse. A fixed percentage per
-    // solver pass erased sliding motion even in a barely glancing collision.
+    // A solid disk's inertia is mr²/2. Contact friction exchanges linear and
+    // angular momentum instead of simply damping the centers' sliding speed.
+    const inertiaA = massA * ar * ar * 0.5;
+    const inertiaB = massB * br * br * 0.5;
     const tx = -ny;
     const ty = nx;
-    const tangent = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty;
-    const friction = Math.max(-impulse * 0.035, Math.min(impulse * 0.035, -tangent / inverseMass));
+    const tangent = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty
+      - b.angularVelocity * br - a.angularVelocity * ar;
+    const tangentMass = inverseMass + ar * ar / inertiaA + br * br / inertiaB;
+    const limit = impulse * CONFIG.physics.friction;
+    const friction = Math.max(-limit, Math.min(limit, -tangent / tangentMass));
     a.vx -= friction * tx / massA;
     a.vy -= friction * ty / massA;
     b.vx += friction * tx / massB;
     b.vy += friction * ty / massB;
-    if (Math.abs(rv) > 80) {
-      a.squash = Math.max(a.squash, 0.08);
-      b.squash = Math.max(b.squash, 0.08);
-    }
+    a.angularVelocity -= friction * ar / inertiaA;
+    b.angularVelocity -= friction * br / inertiaB;
   }
+}
+
+function resolveBoundary(fruit, nx, ny) {
+  const normalSpeed = fruit.vx * nx + fruit.vy * ny;
+  if (normalSpeed >= 0) return;
+  const radius = FRUITS[fruit.type].radius;
+  const mass = radius * radius;
+  const inertia = mass * radius * radius * 0.5;
+  const bounce = normalSpeed < -90 ? CONFIG.physics.restitution : 0;
+  const impulse = -(1 + bounce) * normalSpeed * mass;
+  fruit.vx += impulse * nx / mass;
+  fruit.vy += impulse * ny / mass;
+  const tx = -ny;
+  const ty = nx;
+  const tangent = fruit.vx * tx + fruit.vy * ty - fruit.angularVelocity * radius;
+  const tangentMass = 1 / mass + radius * radius / inertia;
+  const limit = impulse * CONFIG.physics.wallFriction;
+  const friction = Math.max(-limit, Math.min(limit, -tangent / tangentMass));
+  fruit.vx += friction * tx / mass;
+  fruit.vy += friction * ty / mass;
+  fruit.angularVelocity -= friction * radius / inertia;
 }
 
 function physics(state, dt) {
   const { gravity, iterations, maxSpeed } = CONFIG.physics;
   const { left, right, floor } = CONFIG.box;
   const fruits = state.fruits;
-  const walls = (fruit, floorFriction = false) => {
+  const walls = (fruit) => {
     const radius = FRUITS[fruit.type].radius;
-    if (fruit.x - radius < left) {
-      fruit.x = left + radius;
-      if (fruit.vx < 0) fruit.vx *= fruit.vx < -90 ? -CONFIG.physics.restitution : 0;
+    if (fruit.x - radius <= left + 0.02) {
+      fruit.x = Math.max(fruit.x, left + radius);
+      resolveBoundary(fruit, 1, 0);
     }
-    if (fruit.x + radius > right) {
-      fruit.x = right - radius;
-      if (fruit.vx > 0) fruit.vx *= fruit.vx > 90 ? -CONFIG.physics.restitution : 0;
+    if (fruit.x + radius >= right - 0.02) {
+      fruit.x = Math.min(fruit.x, right - radius);
+      resolveBoundary(fruit, -1, 0);
     }
     if (fruit.y + radius >= floor - 0.02) {
       fruit.y = Math.min(fruit.y, floor - radius);
-      if (fruit.vy > 90) fruit.squash = Math.max(fruit.squash, 0.1);
-      if (fruit.vy > 0) fruit.vy *= fruit.vy > 90 ? -CONFIG.physics.restitution : 0;
-      if (floorFriction) fruit.vx *= Math.exp(-6 * dt);
+      resolveBoundary(fruit, 0, -1);
     }
   };
   for (const fruit of fruits) {
+    fruit.angle ??= 0;
+    fruit.angularVelocity ??= 0;
     fruit.vy = Math.min(maxSpeed, fruit.vy + gravity * dt);
-    fruit.vx *= Math.exp(-0.25 * dt);
+    fruit.vx *= Math.exp(-0.12 * dt);
+    fruit.angularVelocity *= Math.exp(-0.04 * dt);
     fruit.x += fruit.vx * dt;
     fruit.y += fruit.vy * dt;
     fruit.age += dt;
-    fruit.pop = Math.max(0, fruit.pop - dt * 3.2);
-    fruit.squash = Math.max(0, fruit.squash - dt);
   }
   for (let step = 0; step < iterations; step++) {
     for (const fruit of fruits) walls(fruit);
@@ -222,7 +245,17 @@ function physics(state, dt) {
   // The last pair can push a fruit through a wall, so finish on the boundaries.
   // Contact impulses settle stacks; proximity to a lower fruit is not a reason
   // to freeze a body (it must still be able to roll off a curved surface).
-  for (const fruit of fruits) walls(fruit, true);
+  for (const fruit of fruits) {
+    walls(fruit);
+    const radius = FRUITS[fruit.type].radius;
+    if (fruit.y + radius >= floor - 0.02) {
+      // Rolling resistance acts on both speeds, preserving the no-slip ratio.
+      const resistance = Math.exp(-CONFIG.physics.rollingResistance * dt);
+      fruit.vx *= resistance;
+      fruit.angularVelocity *= resistance;
+    }
+    fruit.angle = (fruit.angle + fruit.angularVelocity * dt) % (Math.PI * 2);
+  }
 }
 
 function keepInside(fruit) {
@@ -265,10 +298,20 @@ function mergeFruits(state) {
       y: (pair.a.y * massA + pair.b.y * massB) / (massA + massB),
       vx: (pair.a.vx * massA + pair.b.vx * massB) / (massA + massB),
       vy: (pair.a.vy * massA + pair.b.vy * massB) / (massA + massB),
+      angle: pair.a.angle ?? 0,
+      angularVelocity: 0,
       age: 0,
-      pop: 1,
-      squash: 0,
     };
+    const inertia = spec.radius ** 4 * 0.5;
+    // Keep both spin and the parents' motion around their shared center.
+    for (const parent of [pair.a, pair.b]) {
+      const radius = FRUITS[parent.type].radius;
+      const mass = radius * radius;
+      const spin = mass * radius * radius * 0.5 * (parent.angularVelocity ?? 0);
+      const orbit = mass * ((parent.x - fruit.x) * (parent.vy - fruit.vy)
+        - (parent.y - fruit.y) * (parent.vx - fruit.vx));
+      fruit.angularVelocity += (spin + orbit) / inertia;
+    }
     keepInside(fruit);
     born.push(fruit);
     state.score += spec.score;
@@ -282,6 +325,7 @@ function mergeFruits(state) {
   state.fruits = list.filter((fruit) => !removed.has(fruit.id)).concat(born);
   if (state.floats.length > 16) state.floats.splice(0, state.floats.length - 16);
   rememberScore(state);
+  return true;
 }
 
 function watchDanger(state, dt) {
@@ -331,7 +375,8 @@ export function updateGame(state, dt, input) {
     physics(state, step);
     left -= step;
   }
-  mergeFruits(state);
+  // The replacement circle must fit its neighbors at full size immediately.
+  if (mergeFruits(state)) physics(state, 0);
   watchDanger(state, frame);
   effects(state, frame);
 }

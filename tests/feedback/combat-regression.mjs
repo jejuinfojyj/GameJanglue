@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame as survivor, updateGame as updateSurvivor, skillStats } from '../../public/games/344a4bafce5e/game.mjs';
-import { CONFIG as SURVIVOR } from '../../public/games/344a4bafce5e/config.mjs';
-import { createGame as brawl, updateGame as updateBrawl } from '../../public/games/36e2e73c26cd/game.mjs';
-import { BRAWLERS } from '../../public/games/36e2e73c26cd/config.mjs';
+import { createGame as survivor, updateGame as updateSurvivor, skillStats } from '../../public/games/탕탕특공대/game.mjs';
+import { CONFIG as SURVIVOR } from '../../public/games/탕탕특공대/config.mjs';
+import { createGame as brawl, updateGame as updateBrawl } from '../../public/games/젬 브롤/game.mjs';
+import { BRAWLERS } from '../../public/games/젬 브롤/config.mjs';
 
 const input = () => ({ keys: new Set(), pressed: new Set(), pointer: { x: 0, y: 0, down: false, pressed: false }, pointers: [] });
 function ticks(update, state, seconds, controls = input()) {

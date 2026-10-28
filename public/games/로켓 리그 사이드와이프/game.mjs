@@ -78,6 +78,7 @@ function createCar(team, x, y, face, isPlayer, cosmetics) {
     vx: 0,
     vy: 0,
     angle: face > 0 ? 0 : Math.PI,
+    facing: face,
     av: 0,
     onGround: true,
     jumpsLeft: 2,
@@ -96,7 +97,7 @@ function createBall(x, y) {
 
 function hoopRects() {
   const cx = CONFIG.width / 2;
-  const cy = 240;
+  const cy = CONFIG.floorY - 230;
   const rimR = 82;
   return {
     cx,
@@ -127,6 +128,7 @@ function resetKickoff(match, favorTeam = 0) {
     car.vx = 0;
     car.vy = 0;
     car.angle = side < 0 ? 0 : Math.PI;
+    car.facing = side < 0 ? 1 : -1;
     car.av = 0;
     car.onGround = true;
     car.jumpsLeft = 2;
@@ -265,11 +267,12 @@ function hitTest(ui, x, y) {
 }
 
 function readControls(state, input) {
-  const pads = { left: false, right: false, jump: false, jumpPressed: false, boost: false };
+  const pads = { left: false, right: false, up: false, jump: false, jumpPressed: false, boost: false };
   const keys = input.keys;
   if (keys.has('arrowleft') || keys.has('a')) pads.left = true;
   if (keys.has('arrowright') || keys.has('d')) pads.right = true;
-  pads.jump = keys.has(' ') || keys.has('w') || keys.has('arrowup');
+  pads.jump = keys.has(' ');
+  pads.up = keys.has('w') || keys.has('arrowup');
   if (keys.has('shift') || keys.has('e') || keys.has('f')) pads.boost = true;
 
   const zones = state.controlZones || [];
@@ -280,6 +283,7 @@ function readControls(state, input) {
       if (p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h) {
         if (z.action === 'left') pads.left = true;
         if (z.action === 'right') pads.right = true;
+        if (z.action === 'up') pads.up = true;
         if (z.action === 'jump') {
           pads.jump = true;
           touchJump = true;
@@ -288,6 +292,8 @@ function readControls(state, input) {
       }
     }
   }
+  // One ascent input aims, launches, and boosts; no midair rotation combo needed.
+  if (pads.up) pads.boost = true;
   pads.jumpPressed = pads.jump && !state._jumpHeld;
   state._jumpHeld = pads.jump;
   state._touchJump = touchJump;
@@ -308,6 +314,7 @@ function applyCarInput(car, pads, dt) {
 
   const drive = (pads.right ? 1 : 0) - (pads.left ? 1 : 0);
   const onGround = car.onGround;
+  if (drive !== 0) car.facing = drive;
 
   if (onGround) {
     car.vx += drive * CONFIG.driveAccel * v.power * dt;
@@ -319,7 +326,7 @@ function applyCarInput(car, pads, dt) {
     while (diff < -Math.PI) diff += Math.PI * 2;
     car.av += diff * 18 * dt;
     car.av *= Math.pow(0.02, dt);
-    if (pads.jumpPressed && car.jumpsLeft > 0) {
+    if ((pads.jumpPressed || pads.up) && car.jumpsLeft > 0) {
       car.vy = -CONFIG.jumpSpeed;
       car.onGround = false;
       car.jumpsLeft -= 1;
@@ -330,13 +337,14 @@ function applyCarInput(car, pads, dt) {
       const target = car.vx < -30 ? Math.PI : 0;
       const diff = Math.atan2(Math.sin(target - car.angle), Math.cos(target - car.angle));
       car.av += (diff * 16 - car.av * 6) * dt;
-    } else car.av += drive * CONFIG.torque * dt;
+    }
     car.vx += drive * CONFIG.airAccel * dt;
+    if (!pads.ai && drive === 0) car.vx *= Math.exp(-3 * dt);
     if (pads.jumpPressed && car.jumpsLeft > 0) {
       if (drive !== 0 && car.flipTimer <= 0) {
         car.vx += drive * CONFIG.dodgeSpeed * 0.85;
         car.vy = Math.min(car.vy, -CONFIG.jumpSpeed * 0.9);
-        car.av += drive * 4;
+        if (pads.ai) car.av += drive * 4;
         car.flipTimer = 0.45;
       } else {
         car.vy = Math.min(car.vy, -CONFIG.jumpSpeed * 0.85);
@@ -349,6 +357,16 @@ function applyCarInput(car, pads, dt) {
   car.jumpHold = Math.max(0, (car.jumpHold || 0) - dt);
   if (!pads.jump) car.jumpHold = 0;
   car.av = clamp(car.av, -5.5, 5.5);
+
+  if (!pads.ai) {
+    // Direction selects a heading instead of building up an uncontrollable spin.
+    const target = pads.up
+      ? (drive > 0 ? -Math.PI / 3 : drive < 0 ? -Math.PI * 2 / 3 : -Math.PI / 2)
+      : (car.facing < 0 ? Math.PI : 0);
+    const diff = Math.atan2(Math.sin(target - car.angle), Math.cos(target - car.angle));
+    car.angle = pads.up && onGround ? target : car.angle + diff * (1 - Math.exp(-18 * dt));
+    car.av = 0;
+  }
 
   if (pads.boost && car.boost > 0) {
     const force = CONFIG.boostForce * v.boostMul;
@@ -744,6 +762,8 @@ function stepGame(state, dt, input) {
   m.scorerFlash = Math.max(0, m.scorerFlash - dt);
 
   if (m.kickoff > 0) {
+    // A jump held through GO should launch when play starts.
+    state._jumpHeld = false;
     m.kickoff -= dt;
     for (const car of m.cars) {
       car.vx = 0;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createGame as survivor, updateGame as updateSurvivor } from '../../public/games/344a4bafce5e/game.mjs';
-import { CONFIG } from '../../public/games/344a4bafce5e/config.mjs';
-import { createGame as brawl, updateGame as updateBrawl, teamGemCount } from '../../public/games/36e2e73c26cd/game.mjs';
+import { createGame as survivor, updateGame as updateSurvivor } from '../../public/games/탕탕특공대/game.mjs';
+import { CONFIG } from '../../public/games/탕탕특공대/config.mjs';
+import { createGame as brawl, updateGame as updateBrawl, teamGemCount } from '../../public/games/젬 브롤/game.mjs';
 
 const originalRandom = Math.random;
 function seedRandom(seed) {

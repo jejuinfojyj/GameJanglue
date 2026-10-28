@@ -21,6 +21,9 @@ export const CONFIG = {
     iterations: 12,
     substep: 1 / 120,
     restitution: 0.06,
+    friction: 0.22,
+    wallFriction: 0.32,
+    rollingResistance: 0.55,
     maxSpeed: 1700,
   },
   rules: {

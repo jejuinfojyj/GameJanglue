@@ -11,13 +11,20 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawFruit(ctx, type, radius, clock) {
+function drawFruit(ctx, type, radius) {
   const spec = FRUITS[type];
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fillStyle = spec.fill;
+  const surface = ctx.createRadialGradient(-radius * 0.3, -radius * 0.35, radius * 0.08, 0, 0, radius);
+  surface.addColorStop(0, spec.fill);
+  surface.addColorStop(0.65, spec.fill);
+  surface.addColorStop(1, spec.shade);
+  ctx.fillStyle = surface;
   ctx.fill();
+  // Decorative leaves and patterns stay inside the same rigid circular shell
+  // that the collision solver uses, even while the fruit is rolling.
+  ctx.clip();
 
   if (type === 0) {
     ctx.fillStyle = spec.shade;
@@ -188,15 +195,11 @@ function drawFruit(ctx, type, radius, clock) {
   ctx.ellipse(-radius * 0.32, -radius * 0.34, radius * 0.28, radius * 0.16, -0.7, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-  if (type === FRUITS.length - 1 && clock) {
-    ctx.globalAlpha = 0.35 + Math.sin(clock * 5) * 0.15;
-    ctx.strokeStyle = '#fff3a0';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius + 3, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
+  ctx.strokeStyle = spec.shade;
+  ctx.lineWidth = Math.max(1, radius * 0.025);
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -295,7 +298,7 @@ function drawHud(ctx, state) {
   const next = FRUITS[state.next];
   ctx.save();
   ctx.translate(404, 112);
-  drawFruit(ctx, state.next, Math.min(22, next.radius), state.clock);
+  drawFruit(ctx, state.next, Math.min(22, next.radius));
   ctx.restore();
   ctx.textAlign = 'left';
   ctx.font = "700 13px system-ui, 'Malgun Gothic', sans-serif";
@@ -318,8 +321,6 @@ export function drawGame(ctx, state) {
   const ordered = [...state.fruits].sort((a, b) => a.y - b.y);
   for (const fruit of ordered) {
     const spec = FRUITS[fruit.type];
-    const pop = fruit.pop > 0 ? 0.72 + (1 - fruit.pop) * 0.38 + Math.sin((1 - fruit.pop) * Math.PI) * 0.08 : 1;
-    const squash = fruit.squash || 0;
     ctx.save();
     ctx.translate(fruit.x, fruit.y + 4);
     ctx.fillStyle = '#00000022';
@@ -329,8 +330,8 @@ export function drawGame(ctx, state) {
     ctx.restore();
     ctx.save();
     ctx.translate(fruit.x, fruit.y);
-    ctx.scale((1 + squash * 1.3) * pop, (1 - squash) * pop);
-    drawFruit(ctx, fruit.type, spec.radius, state.clock);
+    ctx.rotate(fruit.angle || 0);
+    drawFruit(ctx, fruit.type, spec.radius);
     ctx.restore();
   }
   for (const particle of state.particles) {
@@ -360,7 +361,7 @@ export function drawGame(ctx, state) {
   ctx.translate(state.aimX, CONFIG.box.dropY + Math.sin(state.clock * 3) * 2);
   ctx.globalAlpha = 0.45 + ready * 0.55;
   ctx.scale(0.55 + ready * 0.45, 0.55 + ready * 0.45);
-  drawFruit(ctx, state.hold, hold.radius, state.clock);
+  drawFruit(ctx, state.hold, hold.radius);
   ctx.restore();
 
   if (!state.dropped && state.clock > 0.2) {

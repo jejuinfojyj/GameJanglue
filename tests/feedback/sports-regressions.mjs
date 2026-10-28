@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createGame, updateGame, hoopRects } from '../../public/games/8ea04c1db39a/game.mjs';
-import { CONFIG } from '../../public/games/8ea04c1db39a/config.mjs';
-import { createGame as waterGame, updateGame as waterUpdate, SHORTCUTS, handleCanvasTap } from '../../public/games/b32e0b008dea/game.mjs';
+import { createGame, updateGame, hoopRects } from '../../public/games/로켓 리그 사이드와이프/game.mjs';
+import { CONFIG } from '../../public/games/로켓 리그 사이드와이프/config.mjs';
+import { createGame as waterGame, updateGame as waterUpdate, SHORTCUTS, handleCanvasTap } from '../../public/games/워터슬라이드 레이스/game.mjs';
 globalThis.localStorage = { getItem() { return null; }, setItem() {} };
 const input = () => ({ keys: new Set(), pressed: new Set(), pointer: {x:0,y:0,down:false,inside:false,pressed:false}, pointers:[] });
 function rocket(mode) {
@@ -19,7 +19,7 @@ check('1v1 inactive player loses instead of receiving AI own goals',()=>{
 });
 // Team goals and personal goals have distinct reward/stat effects.
 check('an untouched opponent own goal gives no personal goal',()=>{
- const s=rocket('soccer1v1');s.match.kickoff=0;s.match.ball={x:910,y:420,vx:500,vy:0,r:22};
+ const s=rocket('soccer1v1');s.match.kickoff=0;s.match.ball={x:CONFIG.fieldRight-CONFIG.ballRadius-10,y:CONFIG.floorY-70,vx:500,vy:0,r:CONFIG.ballRadius};
  for(let f=0;f<10;f++)updateGame(s,1/120,input());assert.equal(s.match.score[0],1);assert.equal(s.match.playerGoals,0);
 });
 check('2v2 inactive player cannot farm personal goal rewards',()=>{
@@ -29,8 +29,8 @@ check('2v2 inactive player cannot farm personal goal rewards',()=>{
 // A repeatable novice input: drive into a stationary floor ball from the left.
 check('hoops grounded approach can put a physical ball through the basket',()=>{
  const s=rocket('hoops');s.match.kickoff=0;s.match.cars=s.match.cars.filter(c=>c.isPlayer);
- const c=s.match.cars[0];Object.assign(c,{x:320,y:454,vx:190,angle:0});s.match.ball={x:405,y:448,vx:0,vy:0,r:22};
- const i=input();i.keys.add('d');let highest=448;
+ const c=s.match.cars[0],center=CONFIG.width/2;Object.assign(c,{x:center-160,y:CONFIG.floorY-CONFIG.carHalfH,vx:190,angle:0});s.match.ball={x:center-75,y:CONFIG.floorY-CONFIG.ballRadius,vx:0,vy:0,r:CONFIG.ballRadius};
+ const i=input();i.keys.add('d');let highest=CONFIG.floorY-CONFIG.ballRadius;
  for(let f=0;f<360&&!s.match.score[0];f++){updateGame(s,1/120,i);highest=Math.min(highest,s.match.ball.y);}
  assert.equal(s.match.score[0],1,`apex ${highest}, basket y ${hoopRects().cy}`);return `apex ${highest.toFixed(1)}`;
 });

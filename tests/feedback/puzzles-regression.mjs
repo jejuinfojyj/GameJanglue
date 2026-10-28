@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { createGame as watermelon, updateGame as stepFruit } from '../../public/games/88140a952e84/game.mjs';
-import { CONFIG as fruitConfig, FRUITS } from '../../public/games/88140a952e84/config.mjs';
-import { createGame as snakeGame, updateGame as stepSnake } from '../../public/games/68e984a14c19/game.mjs';
-import { createGame as royal, updateGame as stepRoyal, tileVisuals } from '../../public/games/5b230b06de8e/game.mjs';
+import { createGame as watermelon, updateGame as stepFruit } from '../../public/games/수박게임/game.mjs';
+import { CONFIG as fruitConfig, FRUITS } from '../../public/games/수박게임/config.mjs';
+import { createGame as snakeGame, updateGame as stepSnake } from '../../public/games/Snake.io/game.mjs';
+import { createGame as royal, updateGame as stepRoyal, tileVisuals } from '../../public/games/로얄매치/game.mjs';
 
 const input = (x = 0, y = 0, pressed = false) => ({
   keys: new Set(), pressed: new Set(),

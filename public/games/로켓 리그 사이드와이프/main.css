@@ -6,7 +6,7 @@
 }
 
 #game-frame {
-  width: min(100vw - 12px, calc((100dvh - 52px) * 1.777));
+  width: min(100vw - 12px, calc((100dvh - 52px) * 1.5));
   max-width: 1040px;
 }
 
