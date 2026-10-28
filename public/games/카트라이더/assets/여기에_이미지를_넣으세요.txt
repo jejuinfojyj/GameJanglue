@@ -1,0 +1,10 @@
+이 폴더에 이미지를 넣고, src/assets/manifest.ts 의 null 을 경로로 바꾸면 게임에 들어갑니다.
+
+background.png  배경. 트랙은 그 위에 그려집니다.
+kart.png        카트. 오른쪽이 앞.
+driver.png      운전석 캐릭터. 카트 그림에 캐릭터가 있으면 비워 둡니다.
+wheel.png       바퀴 하나. 오른쪽이 앞.
+tree.png        나무.
+bush.png        덤불.
+
+색, 트랙 크기, 랩 수, 가속과 드리프트 수치는 src/config/ 폴더에서 바꿉니다.

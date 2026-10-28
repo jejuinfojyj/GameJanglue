@@ -186,6 +186,17 @@
       "preview": "/previews/%EC%9A%B0%EB%85%B8%20%EC%B9%B4%EB%93%9C%20%ED%8C%8C%ED%8B%B0.png",
       "width": 480,
       "height": 800
+    },
+    {
+      "id": "26a28ed1df74",
+      "title": "카트라이더",
+      "genre": "레이싱 · 스포츠",
+      "url": "/games/%EC%B9%B4%ED%8A%B8%EB%9D%BC%EC%9D%B4%EB%8D%94/",
+      "description": "오벌 서킷에서 조향과 드리프트로 랩 타임에 도전하는 카트 레이싱. 코너에서 드리프트를 모았다가 놓으면 부스트가 발동합니다.",
+      "controls": "자동 가속 · 모바일: 좌우 조향·브레이크/후진·드리프트 버튼 · PC: ←→/AD 조향, ↓/S 브레이크·후진, Space·Shift 드리프트 · Esc 쉬기",
+      "preview": "/previews/%EC%B9%B4%ED%8A%B8%EB%9D%BC%EC%9D%B4%EB%8D%94.png",
+      "width": 960,
+      "height": 640
     }
   ]
 }

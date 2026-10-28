@@ -1,0 +1,45 @@
+/**
+ * 색, 카메라, 표시 여부.
+ * 사진을 입히기 전에는 이 값으로 전체 분위기를 바꾼다.
+ */
+export const visual = {
+    font: '"Segoe UI", "Malgun Gothic", sans-serif',
+    grassA: "#3f9448",
+    grassB: "#469c50",
+    grassSpeck: "#2f7338",
+    grassLight: "#67b86a",
+    infieldA: "#4eaa62",
+    infieldB: "#3f9554",
+    asphalt: "#4c5362",
+    asphaltDeep: "#3a4150",
+    line: "#f5f7fb",
+    curbRed: "#e03636",
+    curbWhite: "#f4f2ec",
+    pondDeep: "#1e6f86",
+    pondShallow: "#49b4c4",
+    kartColor: "#2f7dff",
+    kartColorDark: "#173e86",
+    kartAccent: "#ffb703",
+    kartLength: 58,
+    kartWidth: 32,
+    kartNumber: "1",
+    kartImageScale: 1,
+    seed: 11,
+    treeCount: 30,
+    bushCount: 14,
+    rockCount: 8,
+    cameraViewHeight: 590,
+    cameraLookahead: 78,
+    cameraStiffness: 28,
+    introStiffness: 8,
+    titlePadding: 340,
+    vignette: 0.2,
+    /** 배경 사진 위에도 나무, 연못, 관중석을 그린다. */
+    sceneryOverBackground: false,
+    /** 카트 이미지가 바퀴까지 포함한다고 보고, 절차적 바퀴는 그리지 않는다. */
+    kartImageIncludesRig: true,
+    pixelatedSprites: false,
+    speedToKmh: 0.36,
+    crashFrames: 4,
+    crashFps: 4,
+};
