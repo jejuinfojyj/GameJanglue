@@ -13,7 +13,7 @@ function skillLevel(state, id) {
 }
 
 function powerMul(state) {
-  return 1 + skillLevel(state, 'power') * 0.18;
+  return 1 + skillLevel(state, 'power') * 0.25;
 }
 
 function cdMul(state) {
@@ -29,7 +29,7 @@ function pickupRange(state) {
 }
 
 function maxHp(state) {
-  return CONFIG.player.maxHp + skillLevel(state, 'vit') * 18;
+  return CONFIG.player.maxHp + skillLevel(state, 'vit') * 25;
 }
 
 // Combat and upgrade cards read the same values, so previews describe the attack
@@ -41,33 +41,33 @@ export function skillStats(state, id, level = skillLevel(state, id)) {
   if (id === 'kunai') {
     const evolved = !!state.evolved.kunai;
     return {
-      damage: (evolved ? 18 : 10) * (1 + lv * 0.2) * pow,
-      interval: (evolved ? 0.25 : 0.55 - Math.max(0, lv - 1) * 0.03) * cd,
+      damage: (evolved ? 26 : 18) * (1 + lv * 0.25) * pow,
+      interval: (evolved ? 0.28 : 0.42 - Math.max(0, lv - 1) * 0.035) * cd,
       count: 1 + Math.floor(Math.max(0, lv - 1) / 2),
-      speed: evolved ? 420 : 340, radius: evolved ? 8 : 6,
-      life: evolved ? 1.4 : 0.9, pierce: evolved ? 4 + lv : 0,
+      speed: evolved ? 480 : 400, radius: evolved ? 8 : 6,
+      range: 460, life: 1.4, pierce: evolved ? 2 + Math.floor(lv / 2) : 0,
     };
   }
   if (id === 'molotov') return {
-    damage: (6 + lv * 2) * pow, interval: (1.8 - Math.max(0, lv - 1) * 0.08) * cd,
-    radius: 46 + lv * 8, life: 2.2 + lv * 0.25,
+    damage: (14 + lv * 6) * pow, interval: (1.6 - Math.max(0, lv - 1) * 0.08) * cd,
+    radius: 60 + lv * 10, life: 3 + lv * 0.3,
     count: 1 + Math.floor(Math.max(0, lv - 1) / 2),
   };
   if (id === 'drone') return {
-    damage: (8 + lv * 2) * pow, interval: (0.7 - Math.max(0, lv - 1) * 0.05) * cd,
+    damage: (14 + lv * 5) * pow, interval: (0.6 - Math.max(0, lv - 1) * 0.05) * cd,
     count: Math.min(3, 1 + Math.floor(Math.max(0, lv - 1) / 2)), range: 360 + lv * 10,
   };
   if (id === 'lightning') return {
-    damage: (14 + lv * 3) * pow, interval: (1.35 - Math.max(0, lv - 1) * 0.08) * cd,
+    damage: (25 + lv * 8) * pow, interval: (1.1 - Math.max(0, lv - 1) * 0.08) * cd,
     count: 1 + lv, range: 220 + lv * 12, chainRange: 160 + lv * 8,
   };
   if (id === 'saw') return {
-    damage: (10 + lv * 4) * pow, count: 1 + Math.floor(Math.max(0, lv - 1) / 2),
+    damage: (50 + lv * 20) * pow, count: 1 + Math.floor(Math.max(0, lv - 1) / 2),
     radius: 54 + lv * 4, rotation: 2.4 + lv * 0.25,
   };
   if (id === 'drink') return { speed: CONFIG.player.baseSpeed * (1 + lv * 0.12), bonus: lv * 12 };
-  if (id === 'vit') return { maxHp: CONFIG.player.maxHp + lv * 18, regen: lv * 0.3 };
-  if (id === 'power') return { bonus: lv * 18 };
+  if (id === 'vit') return { maxHp: CONFIG.player.maxHp + lv * 25, regen: lv * 0.8 };
+  if (id === 'power') return { bonus: lv * 25 };
   if (id === 'magnet') return { range: CONFIG.player.pickup + lv * CONFIG.player.magnetBonus };
   if (id === 'cooldown') return { bonus: lv * 10 };
   return {};
@@ -113,6 +113,17 @@ function buildChoices(state) {
 
   const unique = [...new Set(pool)];
   const choices = [];
+  // A build must be possible to pursue in one round. Never hide a ready
+  // evolution behind randomness, and always offer the strongest owned weapon.
+  const add = id => {
+    const index = unique.indexOf(id);
+    if (index >= 0 && choices.length < 3) choices.push(unique.splice(index, 1)[0]);
+  };
+  for (const id of WEAPON_IDS) if (canEvolve(state, id)) add(`evolve:${id}`);
+  const focused = weapons.filter(id => skillLevel(state, id) < SKILLS[id].max)
+    .sort((a, b) => skillLevel(state, b) - skillLevel(state, a))[0];
+  if (focused) add(focused);
+  if (skillLevel(state, 'kunai') >= 3 && !skillLevel(state, 'drink') && !state.evolved.kunai) add('drink');
   while (choices.length < 3 && unique.length) {
     const i = (Math.random() * unique.length) | 0;
     choices.push(unique.splice(i, 1)[0]);
@@ -150,7 +161,7 @@ function applyChoice(state, choice) {
     if (!prev && ownedOfType(state, skill.type).length >= limit) return false;
     state.skills[choice] = prev + 1;
     if (choice === 'vit') {
-      const gain = 18;
+      const gain = 25;
       state.player.maxHp = maxHp(state);
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + gain);
     }
@@ -158,6 +169,7 @@ function applyChoice(state, choice) {
     state.banner = { text: `${skill.name} Lv.${prev + 1}${prev + 1 === skill.max ? ' MAX' : ''}`, life: 2 };
   }
   state.choices = null;
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + state.player.maxHp * 0.08);
   state.choiceLayout = null;
   state.stick.active = false;
   queueLevelUp(state);
@@ -166,25 +178,32 @@ function applyChoice(state, choice) {
 
 function spawnEnemy(state, kind) {
   const angle = rand(0, Math.PI * 2);
-  const distAway = rand(320, 520);
+  const distAway = rand(340, 480);
   const px = state.player.x + Math.cos(angle) * distAway;
   const py = state.player.y + Math.sin(angle) * distAway;
   const half = CONFIG.worldSize / 2;
-  const x = clamp(px, -half + 40, half - 40);
-  const y = clamp(py, -half + 40, half - 40);
+  let x = clamp(px, -half + 40, half - 40);
+  let y = clamp(py, -half + 40, half - 40);
+  // Clamping an outward spawn at the boundary can place it on the player.
+  // Use the open direction into the arena to retain a fair approach distance.
+  if (dist(state.player.x, state.player.y, x, y) < 280) {
+    const inward = Math.atan2(-state.player.y, -state.player.x);
+    x = clamp(state.player.x + Math.cos(inward) * distAway, -half + 40, half - 40);
+    y = clamp(state.player.y + Math.sin(inward) * distAway, -half + 40, half - 40);
+  }
   const t = state.time;
-  const scale = 1 + t / 180;
+  const scale = 1 + (t / CONFIG.duration) * 0.7;
 
   if (kind === 'boss') {
     state.enemies.push({
       kind: 'boss',
       x, y,
       r: 34,
-      hp: 420 * scale,
-      maxHp: 420 * scale,
-      speed: 55,
-      damage: 18,
-      xp: 28,
+      hp: 900 * scale,
+      maxHp: 900 * scale,
+      speed: 46,
+      damage: 14,
+      xp: 36,
       flash: 0,
     });
     state.banner = { text: '보스 등장!', life: 2 };
@@ -195,11 +214,11 @@ function spawnEnemy(state, kind) {
       kind: 'elite',
       x, y,
       r: 22,
-      hp: 90 * scale,
-      maxHp: 90 * scale,
-      speed: 70,
-      damage: 12,
-      xp: 10,
+      hp: 60 * scale,
+      maxHp: 60 * scale,
+      speed: 62,
+      damage: 10,
+      xp: 12,
       flash: 0,
     });
     return;
@@ -209,11 +228,11 @@ function spawnEnemy(state, kind) {
       kind: 'fast',
       x, y,
       r: 12,
-      hp: 16 * scale,
-      maxHp: 16 * scale,
-      speed: 130,
-      damage: 7,
-      xp: 2,
+      hp: 13 * scale,
+      maxHp: 13 * scale,
+      speed: 112,
+      damage: 6,
+      xp: 3,
       flash: 0,
     });
     return;
@@ -222,11 +241,11 @@ function spawnEnemy(state, kind) {
     kind: 'basic',
     x, y,
     r: 14,
-    hp: 28 * scale,
-    maxHp: 28 * scale,
-    speed: 78,
-    damage: 8,
-    xp: 3,
+    hp: 18 * scale,
+    maxHp: 18 * scale,
+    speed: 68,
+    damage: 7,
+    xp: 4,
     flash: 0,
   });
 }
@@ -235,25 +254,23 @@ function scheduleSpawns(state, dt) {
   state.spawnTimer -= dt;
   if (state.spawnTimer > 0) return;
   const t = state.time;
-  const rate = Math.max(0.18, 0.85 - t / 220);
+  const rate = Math.max(0.5, 1.15 - (t / CONFIG.duration) * 0.65);
   state.spawnTimer = rate;
 
-  let count = 1 + Math.floor(t / 45);
-  if (t > 60) count += 1;
-  if (t > 120) count += 1;
+  const count = Math.min(1 + Math.floor(t / 80), 110 - state.enemies.length);
 
   for (let i = 0; i < count; i++) {
     const roll = Math.random();
-    if (t > 40 && roll < 0.22) spawnEnemy(state, 'fast');
-    else if (t > 70 && roll < 0.35) spawnEnemy(state, 'elite');
+    if (t > 50 && roll < 0.2) spawnEnemy(state, 'fast');
+    else if (t > 100 && roll < 0.3) spawnEnemy(state, 'elite');
     else spawnEnemy(state, 'basic');
   }
 
-  if (!state.boss90 && t >= 90) {
+  if (!state.boss90 && t >= CONFIG.duration * 0.5) {
     state.boss90 = true;
     spawnEnemy(state, 'boss');
   }
-  if (!state.boss170 && t >= 155) {
+  if (!state.boss170 && t >= CONFIG.duration - 30) {
     state.boss170 = true;
     spawnEnemy(state, 'boss');
   }
@@ -285,7 +302,7 @@ function hurtEnemy(state, enemy, amount) {
     x: enemy.x,
     y: enemy.y,
     value: enemy.xp,
-    life: 18,
+    life: CONFIG.gemLifetime,
   });
   enemy.dead = true;
   if (state.fx.length < 80) state.fx.push({ kind: 'burst', x: enemy.x, y: enemy.y, life: 0.3, r: enemy.r });
@@ -301,7 +318,7 @@ function fireWeapons(state, dt) {
       const stats = skillStats(state, 'kunai');
       const evolved = state.evolved.kunai;
       state.timers.kunai = stats.interval;
-      const target = nearestEnemy(state, p.x, p.y, 420);
+      const target = nearestEnemy(state, p.x, p.y, stats.range);
       if (target) {
         const shots = stats.count;
         for (let i = 0; i < shots; i++) {
@@ -358,11 +375,11 @@ function fireWeapons(state, dt) {
           kind: 'bolt',
           x: ox,
           y: oy,
-          vx: Math.cos(a) * 300,
-          vy: Math.sin(a) * 300,
+          vx: Math.cos(a) * 420,
+          vy: Math.sin(a) * 420,
           r: 5,
           damage: stats.damage,
-          life: 0.85,
+          life: stats.range / 420 + 0.15,
           pierce: 0,
         });
       }
@@ -548,7 +565,7 @@ export function updateGame(state, dt, input) {
   state.player.x = clamp(state.player.x, -state.half + 20, state.half - 20);
   state.player.y = clamp(state.player.y, -state.half + 20, state.half - 20);
   state.player.invuln = Math.max(0, state.player.invuln - dt);
-  state.player.hp = Math.min(state.player.maxHp, state.player.hp + skillLevel(state, 'vit') * 0.3 * dt);
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + skillLevel(state, 'vit') * 0.8 * dt);
 
   scheduleSpawns(state, dt);
   fireWeapons(state, dt);

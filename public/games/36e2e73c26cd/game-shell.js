@@ -21,7 +21,7 @@ export function mountGame(options){
  resize();window.addEventListener('resize',resize);
  const active=new Map();
  function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*width/r.width,y:(e.clientY-r.top)*height/r.height};}
- function sync(e,kind){const p=point(e);Object.assign(input.pointer,p,{inside:p.x>=0&&p.y>=0&&p.x<=width&&p.y<=height});if(kind==='down'){input.pointer.down=true;input.pointer.pressed=true;active.set(e.pointerId,{id:e.pointerId,...p,down:true});}else if(kind==='move'){if(active.has(e.pointerId))active.set(e.pointerId,{id:e.pointerId,...p,down:true});}else{active.delete(e.pointerId);input.pointer.down=active.size>0;input.pointer.released=true;}input.pointers=[...active.values()];}
+ function sync(e,kind){const p=point(e),pointerType=e.pointerType||'mouse';Object.assign(input.pointer,p,{pointerType,inside:p.x>=0&&p.y>=0&&p.x<=width&&p.y<=height});if(kind==='down'){input.pointer.down=true;input.pointer.pressed=true;active.set(e.pointerId,{id:e.pointerId,...p,pointerType,down:true});}else if(kind==='move'){if(active.has(e.pointerId))active.set(e.pointerId,{id:e.pointerId,...p,pointerType,down:true});}else{active.delete(e.pointerId);input.pointer.down=active.size>0;input.pointer.released=true;}input.pointers=[...active.values()];}
  canvas.addEventListener('pointerdown',e=>{if(runner.mode!=='play')return;e.preventDefault();canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);sync(e,'down');});
  canvas.addEventListener('pointermove',e=>{if(runner.mode==='play')sync(e,'move');});
  canvas.addEventListener('pointerup',e=>{if(runner.mode==='play')sync(e,'up');});

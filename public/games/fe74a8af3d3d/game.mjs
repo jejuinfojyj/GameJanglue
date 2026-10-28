@@ -31,11 +31,12 @@ function loadProgress() {
     const raw = localStorage.getItem(CONFIG.storageKey);
     if (!raw) return blank;
     const data = JSON.parse(raw);
-    return {
+    const energy = Number(data.energy);
+    const progress = {
       coins: Math.max(0, Math.floor(Number(data.coins) || 0)),
       stars: Math.max(0, Math.floor(Number(data.stars) || 0)),
-      energy: Math.max(0, Math.min(CONFIG.maxEnergy, Math.floor(Number(data.energy) ?? CONFIG.maxEnergy))),
-      regenAt: Number(data.regenAt) || 0,
+      energy: Number.isFinite(energy) ? Math.max(0, Math.min(CONFIG.maxEnergy, Math.floor(energy))) : CONFIG.maxEnergy,
+      regenAt: Math.max(0, Math.min(CONFIG.energyRegenSec, Number(data.regenAt) || 0)),
       owned: Array.isArray(data.owned)
         ? data.owned.filter((id) => DECORATIONS.some((d) => d.id === id))
         : [],
@@ -44,6 +45,16 @@ function loadProgress() {
       eventReady: Boolean(data.eventReady),
       gridSeed: Array.isArray(data.gridSeed) ? data.gridSeed : null,
     };
+    // Saved remaining time and its timestamp allow recovery while the game is closed.
+    if (progress.energy < CONFIG.maxEnergy && Number.isFinite(data.savedAt) && data.savedAt > 0) {
+      const elapsed = Math.max(0, (Date.now() - data.savedAt) / 1000);
+      const remaining = progress.regenAt || CONFIG.energyRegenSec;
+      if (elapsed >= remaining) {
+        progress.energy = Math.min(CONFIG.maxEnergy, progress.energy + 1 + Math.floor((elapsed - remaining) / CONFIG.energyRegenSec));
+        progress.regenAt = progress.energy === CONFIG.maxEnergy ? 0 : CONFIG.energyRegenSec - ((elapsed - remaining) % CONFIG.energyRegenSec);
+      } else progress.regenAt = remaining - elapsed;
+    }
+    return progress;
   } catch {
     return blank;
   }
@@ -58,6 +69,7 @@ function saveProgress(state) {
         stars: state.stars,
         energy: state.energy,
         regenAt: state.regenAt,
+        savedAt: Date.now(),
         owned: state.owned,
         styles: state.styles,
         ordersDone: state.ordersDone,
@@ -273,6 +285,7 @@ function tickEnergy(state, dt) {
     return;
   }
   if (!state.regenAt) state.regenAt = CONFIG.energyRegenSec;
+  const previous = state.energy;
   state.regenAt -= dt;
   while (state.regenAt <= 0 && state.energy < CONFIG.maxEnergy) {
     state.energy += 1;
@@ -282,11 +295,12 @@ function tickEnergy(state, dt) {
     }
     state.regenAt += CONFIG.energyRegenSec;
   }
+  if (state.energy !== previous) saveProgress(state);
 }
 
 function spendEnergy(state, amount) {
   if (state.energy < amount) {
-    showToast(state, '에너지가 부족해요. 잠시 기다리거나 이벤트를 노려 보세요!', 'warn');
+    showToast(state, `에너지가 부족해요. ${Math.max(1, Math.ceil(state.regenAt || CONFIG.energyRegenSec))}초 후 1 회복돼요.`, 'warn');
     return false;
   }
   state.energy -= amount;
@@ -297,13 +311,12 @@ function spendEnergy(state, amount) {
 }
 
 function spawnFromGenerator(state, chainId) {
-  if (!spendEnergy(state, CONFIG.spawnCost)) return;
   const empty = findEmptyCells(state.grid);
   if (!empty.length) {
-    state.energy += CONFIG.spawnCost;
     showToast(state, '판이 가득 찼어요. 합치거나 손님에게 전달해 보세요.', 'warn');
     return;
   }
+  if (!spendEnergy(state, CONFIG.spawnCost)) return;
   const spot = empty[Math.floor(Math.random() * empty.length)];
   const item = makeItem(chainId, 1);
   state.grid[spot.r][spot.c] = item;

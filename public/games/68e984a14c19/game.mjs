@@ -352,8 +352,8 @@ function avoidance(snake, snakes) {
   const ay = snake.y + Math.sin(snake.angle) * 82;
   let side = 0;
   for (const other of snakes) {
-    if (!other.alive) continue;
-    for (let i = other === snake ? 6 : 0; i < other.parts.length; i += 2) {
+    if (!other.alive || other === snake) continue;
+    for (let i = 0; i < other.parts.length; i += 2) {
       const part = other.parts[i];
       const dx = ax - part.x;
       const dy = ay - part.y;
@@ -395,12 +395,10 @@ function hitWall(snake) {
 
 function bodyHit(snake, snakes) {
   for (const other of snakes) {
-    if (!other.alive) continue;
-    if (other !== snake) {
-      const reach = (snake.radius + other.radius) * 0.72;
-      if (dist2(snake, other) <= reach * reach) return { snake: other, head: true };
-    }
-    for (let i = other === snake ? 10 : 3; i < other.parts.length; i++) {
+    if (!other.alive || other === snake) continue;
+    const headReach = (snake.radius + other.radius) * 0.72;
+    if (dist2(snake, other) <= headReach * headReach) return { snake: other, head: true };
+    for (let i = 3; i < other.parts.length; i++) {
       const part = other.parts[i];
       const reach = snake.radius + other.radius * 0.78;
       const dx = snake.x - part.x;

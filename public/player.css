@@ -1,0 +1,7 @@
+/* These creation/installation aids remain available when a game is opened separately. */
+#maker-guide, #install-app, #offline-status, #update-game { display: none !important; }
+#game-frame {
+  width: min(100vw, calc((100dvh - var(--arcade-toolbar, 48px)) * var(--arcade-ratio, .706))) !important;
+  max-width: none !important;
+}
+#game-canvas { width: 100% !important; height: auto !important; }

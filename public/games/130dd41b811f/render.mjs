@@ -1,6 +1,5 @@
 import { RULES, STAGES } from './config.mjs';
 import { findHero, findPet, heroSprite, petSprite, imageFor } from './characters.mjs';
-import { needsTurn } from './game.mjs';
 
 // 화면 크기와 배치. anchorY는 주인공 발이 놓이는 높이, panelY는 아래 버튼 칸의 시작.
 export const LAYOUT = { width: 480, height: 680, stepW: 50, stepH: 34, stepSize: 56, anchorY: 430, panelY: 590 };
@@ -195,7 +194,7 @@ function drawHud(ctx, state, stage, clock, mode) {
 
   ctx.textAlign = 'center';
   if (mode === 'play' && state.phase === 'play' && !state.started && Math.sin(clock * 6) > -0.4) {
-    outlinedText(ctx, '오르기를 눌러 출발!', W / 2, 170, 24, '#ffe066');
+    outlinedText(ctx, '다음 계단 방향을 눌러 출발!', W / 2, 170, 22, '#ffe066');
   }
   if (state.flash > 0 && state.stage > 0) {
     ctx.globalAlpha = Math.min(1, state.flash * 2);
@@ -215,9 +214,10 @@ function drawPanel(ctx, state, clock, mode) {
   const top = LAYOUT.panelY;
   ctx.fillStyle = 'rgba(16,12,30,.86)'; ctx.fillRect(0, top, W, H - top);
   ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, top, W, 2);
-  const hintTurn = mode === 'play' && state.phase === 'play' && state.score < 15 && needsTurn(state);
-  drawButton(ctx, 14, top + 10, 218, H - top - 22, '방향 바꾸기', 'F · ←', '#ff8a4c', state.press.turn, 'turn', hintTurn && Math.sin(clock * 10) > 0);
-  drawButton(ctx, 248, top + 10, 218, H - top - 22, '오르기', 'J · →', '#4cc2ff', state.press.climb, 'climb', false);
+  const hint = mode === 'play' && state.phase === 'play' && state.score < 15;
+  const nextIsLeft = state.steps[state.stepIndex + 1].col < state.steps[state.stepIndex].col;
+  drawButton(ctx, 14, top + 10, 218, H - top - 22, '왼쪽 한 칸', '← · A · F', '#ff8a4c', state.press.left, 'left', hint && nextIsLeft);
+  drawButton(ctx, 248, top + 10, 218, H - top - 22, '오른쪽 한 칸', '→ · D · J', '#4cc2ff', state.press.right, 'right', hint && !nextIsLeft);
 }
 
 function drawButton(ctx, x, y, w, h, label, keys, color, press, icon, hint) {
@@ -229,17 +229,10 @@ function drawButton(ctx, x, y, w, h, label, keys, color, press, icon, hint) {
   if (hint) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4; ctx.strokeRect(x - 3, y + down - 3, w + 6, h + 2); }
   const cx = x + 40, cy = y + down + h / 2 - 2;
   ctx.fillStyle = INK;
-  if (icon === 'turn') {
-    ctx.fillRect(cx - 14, cy - 8, 16, 5);
-    ctx.beginPath(); ctx.moveTo(cx + 2, cy - 13); ctx.lineTo(cx + 14, cy - 5.5); ctx.lineTo(cx + 2, cy + 2); ctx.fill();
-    ctx.fillRect(cx - 2, cy + 5, 16, 5);
-    ctx.beginPath(); ctx.moveTo(cx - 2, cy); ctx.lineTo(cx - 14, cy + 7.5); ctx.lineTo(cx - 2, cy + 15); ctx.fill();
-  } else {
-    ctx.fillRect(cx - 15, cy + 4, 10, 10);
-    ctx.fillRect(cx - 5, cy - 4, 10, 18);
-    ctx.fillRect(cx + 5, cy - 12, 10, 26);
-  }
+  const dir = icon === 'left' ? -1 : 1;
+  ctx.fillRect(cx - 12, cy - 3, 24, 6);
+  ctx.beginPath(); ctx.moveTo(cx + dir * 18, cy); ctx.lineTo(cx + dir * 4, cy - 13); ctx.lineTo(cx + dir * 4, cy + 13); ctx.fill();
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.font = `900 22px ${FONT}`; ctx.fillText(label, x + 70, cy - 6);
+  ctx.font = `900 20px ${FONT}`; ctx.fillText(label, x + 65, cy - 6);
   ctx.font = `700 13px ${FONT}`; ctx.fillStyle = 'rgba(22,18,31,.75)'; ctx.fillText(keys, x + 70, cy + 16);
 }

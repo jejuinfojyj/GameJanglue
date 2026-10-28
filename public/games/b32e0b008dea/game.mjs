@@ -31,7 +31,7 @@ function persistSave(save) {
 
 /** 슬라이드 중심선: 진행도 t(0~length) → 화면 기준 가로 오프셋 비율 */
 export function slideCenter(t) {
-  const u = t / TRACK.length;
+  const u = t / 2000;
   return (
     Math.sin(u * Math.PI * 2.15) * 0.34 +
     Math.sin(u * Math.PI * 5.1 + 0.7) * 0.16 +
@@ -47,27 +47,30 @@ export function slideWidth(t) {
 
 /** 지름길 구간: 점프하면 landT로 빨리 이동, 착지 레인 맞춤 필요 */
 const SHORTCUTS = [
-  { from: 180, to: 240, land: 310, landLane: -0.15, label: '지름길!' },
-  { from: 480, to: 545, land: 620, landLane: 0.25, label: '공중 숏컷' },
-  { from: 780, to: 850, land: 930, landLane: -0.2, label: '빅 점프' },
+  { from: 900, to: 1060, land: 1360, landLane: -0.15, label: '지름길! 약 2초 단축' },
+  { from: 2300, to: 2460, land: 2760, landLane: 0.25, label: '공중 숏컷! 약 2초 단축' },
+  { from: 3700, to: 3860, land: 4160, landLane: -0.2, label: '빅 점프! 약 2초 단축' },
+  { from: 5100, to: 5260, land: 5560, landLane: 0.2, label: '지름길! 약 2초 단축' },
+  { from: 6500, to: 6660, land: 6960, landLane: -0.2, label: '공중 숏컷! 약 2초 단축' },
+  { from: 7900, to: 8060, land: 8360, landLane: 0.15, label: '마지막 지름길!' },
 ];
 
 function buildPickups() {
   const boosts = [];
   const obstacles = [];
   const coins = [];
-  for (let i = 0; i < 10; i++) {
-    const t = 70 + i * 110 + (i % 3) * 18;
+  for (let i = 0; ; i++) {
+    const t = 240 + i * 480 + (i % 3) * 28;
     if (t >= TRACK.length - 80) break;
     boosts.push({ t, lane: ((i % 2) * 2 - 1) * (0.25 + (i % 3) * 0.12), taken: false });
   }
-  for (let i = 0; i < 12; i++) {
-    const t = 95 + i * 90 + (i % 2) * 22;
+  for (let i = 0; ; i++) {
+    const t = 350 + i * 230 + (i % 2) * 22;
     if (t >= TRACK.length - 90) break;
     obstacles.push({ t, lane: Math.sin(i * 1.7) * 0.55, hit: false });
   }
-  for (let i = 0; i < 28; i++) {
-    const t = 40 + i * 40 + (i % 5) * 7;
+  for (let i = 0; ; i++) {
+    const t = 80 + i * 110 + (i % 5) * 7;
     if (t >= TRACK.length - 60) break;
     coins.push({ t, lane: Math.sin(i * 0.9 + 0.3) * 0.62, taken: false });
   }
@@ -170,15 +173,15 @@ function tryJump(racer, state) {
   if (racer.airborne || racer.finished || racer.fallen || racer.jumpCooldown > 0) return false;
   const zone = SHORTCUTS.find((z) => racer.progress >= z.from && racer.progress <= z.to);
   if (!zone) {
-    // 일반 작은 Hop — 레인만 살짝, 위험
+    // A normal hop keeps forward momentum and clears obstacles.
     racer.airborne = true;
     racer.airTimer = 0;
     racer.airFrom = racer.progress;
-    racer.airTo = racer.progress + 55;
+    racer.airTo = Math.min(TRACK.length, racer.progress + Math.max(RULES.jumpBoost, racer.speed) * RULES.jumpDuration);
     racer.airLaneFrom = racer.lane;
     racer.airLaneTo = racer.lane;
     racer.jumpCooldown = 0.55;
-    if (racer.isPlayer) setToast(state, '곡선에서 점프하면 지름길!', 0.9);
+    if (racer.isPlayer) setToast(state, '점프! 장애물을 뛰어넘어요', 0.9);
     return true;
   }
   racer.airborne = true;
@@ -219,12 +222,15 @@ function steerPlayer(racer, dt, input, state) {
   if (input.keys.has('arrowleft') || input.keys.has('a')) steer -= 1;
   if (input.keys.has('arrowright') || input.keys.has('d')) steer += 1;
 
-  if (input.pointer.down && input.pointer.inside) {
-    if (state.lastPointerX == null) state.lastPointerX = input.pointer.x;
-    const dx = input.pointer.x - state.lastPointerX;
-    state.lastPointerX = input.pointer.x;
+  const isJumpTouch = (p) => Math.hypot(p.x - (CONFIG.width - 58), p.y - (CONFIG.height - 78)) <= 44;
+  const pointer = input.pointers?.find((p) => p.down !== false && !isJumpTouch(p)) ||
+    (input.pointer.down && input.pointer.inside && !isJumpTouch(input.pointer) ? input.pointer : null);
+  if (pointer) {
+    if (state.lastPointerX == null) state.lastPointerX = pointer.x;
+    const dx = pointer.x - state.lastPointerX;
+    state.lastPointerX = pointer.x;
     // 드래그로 레인 조절 + 화면 위치로 보조
-    const target = clamp((input.pointer.x / CONFIG.width) * 2 - 1, -1, 1);
+    const target = clamp((pointer.x / CONFIG.width) * 2 - 1, -1, 1);
     racer.lane += (target - racer.lane) * Math.min(1, dt * 7);
     racer.lane += (dx / CONFIG.width) * 2.8;
   } else {
@@ -286,7 +292,9 @@ function collidePickups(racer, state) {
   }
   for (const o of state.pickups.obstacles) {
     if (Math.abs(o.t - racer.progress) < 12 && Math.abs(o.lane - racer.lane) < 0.26) {
-      if (!o.hit || racer.isPlayer) {
+      o.hitBy ||= [];
+      if (!o.hitBy.includes(racer.id)) {
+        o.hitBy.push(racer.id);
         o.hit = true;
         racer.slowTimer = RULES.obstacleHold;
         racer.speed *= RULES.obstacleSlow;
@@ -403,7 +411,7 @@ function tryBuySkin(state, skinId) {
 export function handleCanvasTap(state, x, y, view) {
   // 카운트다운·로비에서 스킨 상점
   if (state.countdown > 0 || state.result) {
-    const top = state.countdown > 0 ? view.height - 150 : 430;
+    const top = state.countdown > 0 ? view.height - 130 : 430;
     for (let i = 0; i < SKINS.length; i++) {
       const skin = SKINS[i];
       const bx = 28 + i * 68;
@@ -481,6 +489,7 @@ export function updateGame(state, dt, input) {
 
     if (racer.isPlayer) steerPlayer(racer, dt, input, state);
     else updateAI(racer, dt, state);
+    if (racer.airborne) continue;
 
     let target = RULES.baseSpeed * (racer.isPlayer ? 1 : 0.88 + racer.skill * 0.14);
     if (racer.boostTimer > 0) target = RULES.maxSpeed;

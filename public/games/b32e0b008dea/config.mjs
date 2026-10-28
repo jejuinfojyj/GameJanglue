@@ -16,7 +16,7 @@ export const CONFIG = {
     coin: '#ffd24a',
   },
   track: {
-    length: 1200,
+    length: 9600,
     baseWidth: 264,
     finishPool: 48,
   },
@@ -29,7 +29,7 @@ export const CONFIG = {
     obstacleSlow: 0.42,
     obstacleHold: 0.55,
     jumpDuration: 0.72,
-    jumpBoost: 210,
+    jumpBoost: 175,
     bumpForce: 0.55,
     fallMargin: 1.08,
     coinValue: 1,

@@ -136,6 +136,10 @@ function launch(game) {
   else location.hash = "play=" + game.id;
 }
 
+function updateOrientationHint() {
+  $("orientation-hint").hidden = !(activeGame && activeGame.width > activeGame.height && window.innerWidth < 700 && window.innerHeight > window.innerWidth);
+}
+
 function syncRoute() {
   const match = location.hash.match(/^#play=([a-f0-9]{12})$/);
   const game = match && games.find((entry) => entry.id === match[1]);
@@ -143,6 +147,7 @@ function syncRoute() {
   if (activeGame?.id === game.id) return;
   if (!activeGame) savedScroll = window.scrollY;
   activeGame = game;
+  updateOrientationHint();
   $("library").hidden = true;
   $("player").hidden = false;
   document.body.classList.add("playing");
@@ -163,6 +168,7 @@ function closePlayer() {
   if (!activeGame) return;
   const previousId = activeGame.id;
   activeGame = null;
+  updateOrientationHint();
   $("game-frame").src = "about:blank";
   $("player").hidden = true;
   $("library").hidden = false;
@@ -201,6 +207,22 @@ $("fullscreen-game").addEventListener("click", async () => {
 });
 $("game-frame").addEventListener("load", () => {
   if (activeGame) {
+    // The library already supplies navigation and help; keep the embedded game focused on play.
+    const doc = $("game-frame").contentDocument;
+    if (doc && !doc.getElementById("arcade-player-style")) {
+      const surface = doc.getElementById("game-frame");
+      const ratio = surface?.style.getPropertyValue("--game-ratio").split("/").map(Number);
+      if (ratio?.length === 2 && ratio[0] > 0 && ratio[1] > 0) surface.style.setProperty("--arcade-ratio", ratio[0] / ratio[1]);
+      const toolbar = doc.getElementById("game-toolbar");
+      if (surface && toolbar) surface.style.setProperty("--arcade-toolbar", (toolbar.getBoundingClientRect().height + 6) + "px");
+      const style = doc.createElement("link");
+      style.id = "arcade-player-style";
+      style.rel = "stylesheet";
+      style.href = "/player.css";
+      doc.head.append(style);
+      const credit = doc.getElementById("game-credit");
+      if (credit?.textContent.includes("먼저 해 보고")) credit.hidden = true;
+    }
     $("player-loading").hidden = true;
     $("game-frame").focus();
   }
@@ -212,10 +234,13 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("hashchange", syncRoute);
+window.addEventListener("resize", updateOrientationHint);
 
 async function init() {
+  $("random-play").disabled = true;
+  $("game-grid").replaceChildren(element("p", "loading", "게임을 불러오고 있어요…"));
   try {
-    const response = await fetch("/api/games");
+    const response = await fetch("/api/games.json");
     if (!response.ok) throw new Error("Catalog unavailable");
     games = (await response.json()).games;
     games.sort((a, b) => GENRES.findIndex((g) => g.name === a.genre) - GENRES.findIndex((g) => g.name === b.genre) || a.title.localeCompare(b.title, "ko"));
@@ -226,7 +251,10 @@ async function init() {
     updateRecent();
     syncRoute();
   } catch {
-    $("game-grid").replaceChildren(element("p", "loading", "게임 목록을 불러오지 못했어요. 잠시 후 새로고침해 주세요."));
+    const retry = element("button", "secondary-button", "다시 불러오기");
+    retry.type = "button";
+    retry.addEventListener("click", init);
+    $("game-grid").replaceChildren(element("p", "loading", "게임 목록을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."), retry);
     $("random-play").disabled = true;
   }
 }
