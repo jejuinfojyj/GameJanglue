@@ -43,8 +43,8 @@ function finishRun(state) {
 
 runner = mountGame({
   title: CONFIG.title,
-  description: '다음 계단이 왼쪽이면 왼쪽, 오른쪽이면 오른쪽!\n캐릭터가 보는 방향과 상관없이 계단이 있는 쪽을 눌러 줘. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
-  controls: '왼쪽 한 칸: 화면 왼쪽 / ←·A·F\n오른쪽 한 칸: 화면 오른쪽 / →·D·J\n처음 15계단은 다음 방향 버튼이 빛나요. Esc 쉬기',
+  description: '오른쪽 버튼으로 바라보는 방향의 계단을 올라가!\n다음 계단이 반대쪽으로 꺾이면 왼쪽 버튼으로 방향을 바꾼 뒤 다시 올라가. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
+  controls: '왼쪽: 방향 전환 / ←·A·F\n오른쪽: 계단 오르기 / →·D·J\n처음 15계단은 방향을 바꿀 때와 오를 때 해당 버튼이 빛나요. Esc 쉬기',
   width: LAYOUT.width,
   height: LAYOUT.height,
   theme: CONFIG.palette,
@@ -70,40 +70,40 @@ function syncOverlay(mode) {
   refreshShop();
 }
 
-function enqueueStep(direction) {
+function enqueueAction(action) {
   unlockAudio();
   if (runner.mode !== 'play' || runner.state.phase !== 'play') return;
-  queue.push(direction);
+  queue.push(action);
   canvas.focus({ preventScroll: true });
 }
 
-// Screen halves correspond to actual left/right movement, regardless of facing.
+// The left screen half turns the hero; the right half climbs one stair.
 canvas.addEventListener('pointerdown', event => {
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   const rect = canvas.getBoundingClientRect();
-  enqueueStep((event.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
+  enqueueAction((event.clientX - rect.left) / rect.width < 0.5 ? 'turn' : 'climb');
 });
 
-for (const button of stepControls.querySelectorAll('[data-step]')) {
+for (const button of stepControls.querySelectorAll('[data-action]')) {
   button.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
-    enqueueStep(button.dataset.step);
+    enqueueAction(button.dataset.action);
   });
   // Keyboard and assistive-technology clicks have no pointer click count.
   button.addEventListener('click', event => {
-    if (event.detail === 0) enqueueStep(button.dataset.step);
+    if (event.detail === 0) enqueueAction(button.dataset.action);
   });
 }
 
 window.addEventListener('keydown', event => {
   if (event.target.closest?.('dialog,input,textarea,select,summary,a,#maker-guide')) return;
-  if (event.target.closest?.('button') && !event.target.closest?.('[data-step]')) return;
+  if (event.target.closest?.('button') && !event.target.closest?.('[data-action]')) return;
   if (event.repeat) return;
   const key = event.key.toLowerCase();
   if (runner.mode === 'play') {
-    if (KEYS.left.includes(key)) { event.preventDefault(); enqueueStep('left'); }
-    else if (KEYS.right.includes(key)) { event.preventDefault(); enqueueStep('right'); }
+    if (KEYS.turn.includes(key)) { event.preventDefault(); enqueueAction('turn'); }
+    else if (KEYS.climb.includes(key)) { event.preventDefault(); enqueueAction('climb'); }
     return;
   }
   if ((key === 'enter' || key === ' ') && runner.mode !== 'pause' && performance.now() - resultAt > 700) {

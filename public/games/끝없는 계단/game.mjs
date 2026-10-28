@@ -26,7 +26,7 @@ export function createGame(options = {}) {
     petView: { x: 0, y: 0 },
     hop: 0,
     flash: 0,
-    press: { left: 0, right: 0 },
+    press: { turn: 0, climb: 0 },
     effects: [],
     events: [],
     elapsed: 0,
@@ -67,14 +67,19 @@ function effect(state, item) {
   if (state.effects.length > 40) state.effects.shift();
 }
 
-// Buttons and arrow keys always indicate the actual direction of the next step.
-function act(state, kind) {
+// The left control turns the hero around; the right control climbs one stair.
+function act(state, action) {
   if (state.phase !== 'play') return;
-  if (kind !== 'left' && kind !== 'right') return;
   state.started = true;
-  state.press[kind] = 1;
+  if (action === 'turn') {
+    state.press.turn = 1;
+    state.facing *= -1;
+    return;
+  }
+  if (action !== 'climb') return;
+
+  state.press.climb = 1;
   state.hop = 1;
-  state.facing = kind === 'left' ? -1 : 1;
   const current = state.steps[state.stepIndex], next = state.steps[state.stepIndex + 1];
   if (next.col !== current.col + state.facing) { fail(state, 'wrong'); return; }
 
@@ -135,8 +140,8 @@ export function updateGame(state, dt, actions = []) {
   state.petView.y += (backIndex - state.petView.y) * petK;
 
   state.hop = Math.max(0, state.hop - dt * 8);
-  state.press.left = Math.max(0, state.press.left - dt * 7);
-  state.press.right = Math.max(0, state.press.right - dt * 7);
+  state.press.turn = Math.max(0, state.press.turn - dt * 7);
+  state.press.climb = Math.max(0, state.press.climb - dt * 7);
   state.flash = Math.max(0, state.flash - dt * 0.8);
   for (const item of state.effects) item.t += dt;
   state.effects = state.effects.filter(item => item.t < item.life);
