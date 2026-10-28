@@ -64,3 +64,27 @@ test('stairs turning toward empty space causes a fall without scoring', () => {
   assert.equal(state.phase, 'falling');
   assert.equal(state.score, 0);
 });
+
+test('rail surfer rolls for as long as down is held and stands on release', async () => {
+  const { createGame, updateGame } = await import('../../public/games/레일 서퍼/game.mjs');
+  const state = createGame({ seed: 7 });
+  state.obstacles = []; state.nextZ = state.nextPowerZ = 1e9;
+  updateGame(state, 0.05, ['down'], true);
+  for (let i = 0; i < 40; i++) updateGame(state, 0.05, [], true);
+  assert.ok(state.rolling > 0, 'holding down must keep the player rolling');
+  updateGame(state, 0.05, [], false);
+  assert.equal(state.rolling, 0, 'releasing down must make the player stand');
+});
+
+test('rail surfer does not roll on landing if down was released in the air', async () => {
+  const { createGame, updateGame } = await import('../../public/games/레일 서퍼/game.mjs');
+  const state = createGame({ seed: 7 });
+  state.obstacles = []; state.nextZ = state.nextPowerZ = 1e9;
+  updateGame(state, 0.05, ['up']);
+  for (let i = 0; i < 5; i++) updateGame(state, 0.05);
+  updateGame(state, 0.001, ['down'], true);
+  assert.equal(state.grounded, false);
+  for (let i = 0; i < 20 && !state.grounded; i++) updateGame(state, 0.05, [], false);
+  assert.equal(state.grounded, true);
+  assert.equal(state.rolling, 0);
+});

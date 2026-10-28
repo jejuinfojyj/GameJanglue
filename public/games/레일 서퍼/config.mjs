@@ -16,7 +16,6 @@ export const RULES = {
   gravity: 36,
   jumpHeight: 1.75,        // 보통 점프 높이 (m)
   superJumpHeight: 3.9,    // 점프화를 신었을 때 높이 (기차 지붕까지 닿는다)
-  rollTime: 0.6,           // 구르기 시간
   stumbleWindow: 4,        // 옆으로 부딪힌 뒤 이 시간 안에 또 부딪히면 잡힌다
   startBoards: 2,          // 판마다 주는 호버보드 수
   boardTime: 30,           // 호버보드 유지 시간
