@@ -28,7 +28,7 @@ let lastTap = 0;
 const REASONS = {
   train: '기차에 정면으로 부딪혔어!',
   hurdle: '낮은 차단봉에 걸렸어! 위로 밀어 뛰어넘자.',
-  gate: '높은 차단봉에 부딪혔어! 아래로 밀고 누른 채로 굴러 지나가자.',
+  gate: '높은 차단봉에 부딪혔어! 아래로 밀어 굴러 지나가자.',
   caught: '옆으로 두 번 부딪혀서 경비원에게 잡혔어!',
 };
 
@@ -55,14 +55,13 @@ function keyActions(pressed) {
 runner = mountGame({
   title: CONFIG.title,
   description: '기찻길 3개 레인을 달리며 기차와 차단봉을 피하고 코인을 모으자!\n경사로로 기차 지붕에 오르면 코인이 가득해. 정면으로 부딪히거나 옆으로 두 번 부딪히면 끝!',
-  controls: '휴대폰: 좌우로 밀어 레인 · 위로 밀어 점프 · 아래로 밀고 누르는 동안 구르기 · 두 번 톡 호버보드\nPC: ←→·A·D 레인 / ↑·W 점프 / ↓·S 누르는 동안 구르기 / Space·B 보드 / Esc 쉬기',
+  controls: '휴대폰: 좌우로 밀어 레인 · 위로 밀어 점프 · 아래로 밀어 구르기 · 두 번 톡 호버보드\nPC: ←→·A·D 레인 / ↑·W 점프 / ↓·S 구르기 / Space·B 보드 / Esc 쉬기',
   width: LAYOUT.width,
   height: LAYOUT.height,
   theme: CONFIG.palette,
   create: () => createGame({ hero: profile.hero, board: profile.board }),
   update(state, dt, input) {
-    const rollHeld = KEYS.down.some(key => input.keys.has(key)) || [...touches.values()].some(touch => touch.rolling);
-    updateGame(state, dt, [...queue.splice(0), ...keyActions(input.pressed)], rollHeld);
+    updateGame(state, dt, [...queue.splice(0), ...keyActions(input.pressed)]);
     for (const event of state.events.splice(0)) sfx[event]?.();
     if (state.result && !state.saved) finishRun(state);
   },
@@ -92,9 +91,7 @@ canvas.addEventListener('pointermove', event => {
   if (!touch || touch.fired || runner.mode !== 'play') return;
   const p = logical(event), dx = p.x - touch.x, dy = p.y - touch.y;
   if (Math.hypot(dx, dy) < SWIPE) return;
-  const action = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-  queue.push(action);
-  touch.rolling = action === 'down';
+  queue.push(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'));
   touch.fired = true;
 });
 function endTouch(event, cancelled) {

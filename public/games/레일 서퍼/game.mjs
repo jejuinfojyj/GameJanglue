@@ -14,7 +14,7 @@ export function createGame({ hero = 'rio', board = 'flame', seed = Date.now() } 
     rng: makeRng(seed), hero, boardStyle: board,
     time: 0, z: 0, x: 0, y: 0, vy: 0, grounded: true,
     targetLane: 1, fromLane: 1,
-    rolling: 0, rollHeld: false, jumpBuffer: 0, runPhase: 0,
+    rolling: 0, rollQueued: false, jumpBuffer: 0, runPhase: 0,
     speed: RULES.startSpeed, distance: 0, score: 0, coins: 0,
     obstacles: [], coinItems: [], pickups: [],
     nextZ: 34, nextPowerZ: 170,
@@ -56,6 +56,7 @@ function jump(state) {
   state.vy = jumpSpeed(state);
   state.grounded = false;
   state.rolling = 0;
+  state.rollQueued = false;
   state.jumpBuffer = 0;
   state.events.push(state.power.sneakers > 0 ? 'superJump' : 'jump');
 }
@@ -84,7 +85,8 @@ function handleAction(state, action) {
   } else if (action === 'down') {
     if (state.power.jetpack > 0) return;
     state.jumpBuffer = 0;
-    if (air) state.vy = Math.min(state.vy, -26);
+    if (air) { state.vy = Math.min(state.vy, -26); state.rollQueued = true; }
+    else state.rolling = RULES.rollTime;
     state.events.push('roll');
   } else if (action === 'board') {
     if (state.boardTime > 0 || state.boards <= 0) return;
@@ -170,12 +172,12 @@ function step(state, h) {
       state.y = ground;
       state.vy = 0;
       state.grounded = true;
+      if (state.rollQueued) { state.rolling = RULES.rollTime; state.rollQueued = false; }
       if (state.jumpBuffer > 0) jump(state);
     } else if (state.y > ground + 0.08) {
       state.grounded = false;
     }
   }
-  state.rolling = state.grounded && state.rollHeld && state.power.jetpack <= 0 ? 1 : 0;
   collide(state, prevX, prevZ, prevZs);
 }
 
@@ -227,8 +229,8 @@ function updateEffects(state, dt) {
   if (state.banner) { state.banner.t -= dt; if (state.banner.t <= 0) state.banner = null; }
 }
 
-/** actions are presses; rollHeld describes the current down input. */
-export function updateGame(state, dt, actions = [], rollHeld = false) {
+/** actions: 'left' | 'right' | 'up' | 'down' | 'board' */
+export function updateGame(state, dt, actions = []) {
   state.time += dt;
   updateEffects(state, dt);
   if (state.crash) {
@@ -237,9 +239,7 @@ export function updateGame(state, dt, actions = [], rollHeld = false) {
     if (state.crash.t >= CRASH_TIME) state.result = { success: false, reason: state.crash.reason, message: '' };
     return;
   }
-  state.rollHeld = rollHeld;
   for (const action of actions) handleAction(state, action);
-  state.rolling = state.grounded && state.rollHeld && state.power.jetpack <= 0 ? 1 : 0;
 
   state.speed = Math.min(RULES.maxSpeed, state.speed + RULES.speedUpPerSecond * dt);
   const startZ = state.z;
@@ -257,6 +257,7 @@ export function updateGame(state, dt, actions = [], rollHeld = false) {
   if (jetBefore > 0 && state.power.jetpack === 0) { state.safe = Math.max(state.safe, 1.4); state.grounded = false; }
   state.boardTime = Math.max(0, state.boardTime - dt);
   state.safe = Math.max(0, state.safe - dt);
+  state.rolling = Math.max(0, state.rolling - dt);
   state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
   state.stumble = Math.max(0, state.stumble - dt);
   state.hintTime = Math.max(0, state.hintTime - dt);

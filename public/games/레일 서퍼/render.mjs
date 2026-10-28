@@ -532,7 +532,7 @@ function drawMessages(state, view) {
     ctx.globalAlpha = Math.min(1, state.hintTime);
     panel(120, 690, 348, 92, 16, '#000000a0');
     text('← → 밀기: 레인 바꾸기', 294, 716, { size: 16, align: 'center', stroke: false });
-    text('↑ 밀기: 점프 · ↓ 밀고 유지: 구르기', 294, 740, { size: 16, align: 'center', stroke: false });
+    text('↑ 밀기: 점프 · ↓ 밀기: 구르기', 294, 740, { size: 16, align: 'center', stroke: false });
     text('두 번 톡 또는 왼쪽 버튼: 호버보드', 294, 764, { size: 14, weight: 700, align: 'center', color: '#e2b8ff', stroke: false });
     ctx.globalAlpha = 1;
   }
