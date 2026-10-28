@@ -67,18 +67,16 @@ function effect(state, item) {
   if (state.effects.length > 40) state.effects.shift();
 }
 
-// The left control turns the hero around; the right control climbs one stair.
+// Both controls climb; the left control reverses direction first.
 function act(state, action) {
   if (state.phase !== 'play') return;
   state.started = true;
   if (action === 'turn') {
     state.press.turn = 1;
     state.facing *= -1;
-    return;
-  }
-  if (action !== 'climb') return;
-
-  state.press.climb = 1;
+  } else if (action === 'climb') {
+    state.press.climb = 1;
+  } else return;
   state.hop = 1;
   const current = state.steps[state.stepIndex], next = state.steps[state.stepIndex + 1];
   if (next.col !== current.col + state.facing) { fail(state, 'wrong'); return; }

@@ -196,7 +196,7 @@ function drawHud(ctx, state, stage, clock, mode) {
   ctx.textAlign = 'center';
   if (mode === 'play' && state.phase === 'play' && !state.started && Math.sin(clock * 6) > -0.4) {
     outlinedText(ctx, '오른쪽 버튼으로 한 칸 오르기!', W / 2, 162, 20, '#ffe066');
-    outlinedText(ctx, '왼쪽 버튼으로 방향 바꾸기', W / 2, 190, 17, '#ffffff');
+    outlinedText(ctx, '왼쪽 버튼으로 방향 바꾸며 오르기', W / 2, 190, 17, '#ffffff');
   }
   if (state.flash > 0 && state.stage > 0) {
     ctx.globalAlpha = Math.min(1, state.flash * 2);
@@ -218,7 +218,7 @@ function drawPanel(ctx, state, clock, mode) {
   ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, top, W, 2);
   const hint = mode === 'play' && state.phase === 'play' && state.score < 15;
   const turnNeeded = needsTurn(state);
-  drawButton(ctx, 14, top + 10, 218, H - top - 22, '방향 전환', '← · A · F', '#ff8a4c', state.press.turn, 'turn', hint && turnNeeded);
+  drawButton(ctx, 14, top + 10, 218, H - top - 22, '방향 전환 + 오르기', '← · A · F', '#ff8a4c', state.press.turn, 'turn', hint && turnNeeded);
   drawButton(ctx, 248, top + 10, 218, H - top - 22, '계단 오르기', '→ · D · J', '#4cc2ff', state.press.climb, 'climb', hint && !turnNeeded);
 }
 

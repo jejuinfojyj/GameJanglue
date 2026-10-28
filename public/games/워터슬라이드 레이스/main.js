@@ -30,8 +30,9 @@ function worldToScreen(progress, lane, cameraProgress) {
   const rel = progress - cameraProgress;
   const y = H * 0.62 - rel * 0.92;
   const scale = clamp(1.05 - Math.max(0, rel) * 0.00125, 0.45, 1.1);
-  const half = Math.min(W * 0.5 - 20, slideWidth(progress) * 0.5 * scale);
-  const bend = (slideCenter(progress) - slideCenter(cameraProgress)) * W * 0.32;
+  const trackProgress = Math.max(0, progress);
+  const half = Math.min(W * 0.5 - 20, slideWidth(trackProgress) * 0.5 * scale);
+  const bend = (slideCenter(trackProgress) - slideCenter(cameraProgress)) * W * 0.32;
   const cx = clamp(W * 0.5 + bend, half + 16, W - half - 16);
   return { x: cx + lane * half, y, scale, half, cx };
 }
@@ -40,35 +41,45 @@ function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v));
 }
 
-function drawSky(ctx) {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#7ad7ff');
-  g.addColorStop(0.45, '#2eb7e6');
-  g.addColorStop(1, '#0a6fa0');
-  ctx.fillStyle = g;
+// Background and track are drawn independently from race state, so artwork can
+// replace these layers later without changing movement or collision rules.
+function drawSky(ctx, cameraProgress) {
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#65c9ef');
+  sky.addColorStop(0.38, '#b5ecf0');
+  sky.addColorStop(0.39, '#52c4d4');
+  sky.addColorStop(1, '#0784aa');
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  // 태양
-  ctx.fillStyle = '#ffe566';
-  ctx.beginPath();
-  ctx.arc(W - 54, 58, 28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,240,150,0.35)';
-  ctx.beginPath();
-  ctx.arc(W - 54, 58, 48, 0, Math.PI * 2);
-  ctx.fill();
+  const glow = ctx.createRadialGradient(315, 67, 12, 315, 67, 75);
+  glow.addColorStop(0, 'rgba(255,249,194,.9)');
+  glow.addColorStop(1, 'rgba(255,249,194,0)');
+  ctx.fillStyle = glow; ctx.fillRect(235, 0, 155, 145);
+  ctx.fillStyle = '#fff2b1'; ctx.beginPath(); ctx.arc(315, 67, 22, 0, Math.PI * 2); ctx.fill();
 
-  // 구름
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  for (const c of [
-    [40, 70, 26],
-    [110, 48, 20],
-    [200, 90, 22],
-  ]) {
+  ctx.fillStyle = 'rgba(255,255,255,.67)';
+  for (const [x, y, size] of [[32, 73, 1], [155, 43, .8], [235, 120, .65]]) {
     ctx.beginPath();
-    ctx.ellipse(c[0], c[1], c[2], c[2] * 0.55, 0, 0, Math.PI * 2);
-    ctx.ellipse(c[0] + 18, c[1] + 4, c[2] * 0.75, c[2] * 0.45, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 30 * size, 10 * size, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 15 * size, y - 8 * size, 16 * size, 12 * size, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - 14 * size, y - 4 * size, 14 * size, 9 * size, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // Distant islands and water move more slowly than the track.
+  const drift = (cameraProgress * .025) % 150;
+  ctx.fillStyle = '#60bfae';
+  for (let i = -1; i < 4; i++) {
+    const x = i * 150 - drift;
+    ctx.beginPath(); ctx.ellipse(x, 273, 76, 17, 0, Math.PI, 0); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(225,255,250,.3)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 16; i++) {
+    const y = 300 + i * 26;
+    const offset = (i * 67 + cameraProgress * .12) % 130;
+    for (let x = offset - 130; x < W; x += 130) {
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 30 + i % 3 * 8, y); ctx.stroke();
+    }
   }
 }
 
@@ -92,14 +103,14 @@ function drawPool(ctx, cameraProgress) {
   ctx.fillText('수영장 골인', s.cx, s.y - 28 * s.scale);
 }
 
-function drawSlideRibbon(ctx, cameraProgress) {
-  const steps = 64;
-  const span = 680;
+function drawSlideRibbon(ctx, cameraProgress, time) {
+  const steps = 96;
+  const span = 930;
   const left = [];
   const right = [];
   for (let i = 0; i <= steps; i++) {
-    const t = cameraProgress - 80 + (span * i) / steps;
-    if (t < -20 || t > CONFIG.track.length + 40) continue;
+    const t = cameraProgress - 320 + (span * i) / steps;
+    if (t > CONFIG.track.length + 40) continue;
     const p = worldToScreen(t, 0, cameraProgress);
     left.push({ x: p.cx - p.half, y: p.y, t });
     right.push({ x: p.cx + p.half, y: p.y, t });
@@ -108,10 +119,11 @@ function drawSlideRibbon(ctx, cameraProgress) {
 
   // 슬라이드 몸통
   const body = ctx.createLinearGradient(0, 0, W, 0);
-  body.addColorStop(0, '#ff7eb9');
-  body.addColorStop(0.35, '#7aedff');
-  body.addColorStop(0.65, '#ffe66d');
-  body.addColorStop(1, '#7dffb3');
+  body.addColorStop(0, '#f08172');
+  body.addColorStop(0.13, '#ffc49f');
+  body.addColorStop(0.5, '#e5fbf3');
+  body.addColorStop(0.87, '#ffc49f');
+  body.addColorStop(1, '#f08172');
   ctx.beginPath();
   ctx.moveTo(left[0].x, left[0].y);
   for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
@@ -133,19 +145,23 @@ function drawSlideRibbon(ctx, cameraProgress) {
     ctx.lineTo(mid.cx + mid.half * 0.72, mid.y);
   }
   ctx.closePath();
-  ctx.fillStyle = 'rgba(80, 220, 255, 0.85)';
+  const water = ctx.createLinearGradient(0, 0, W, 0);
+  water.addColorStop(0, '#19a9c3'); water.addColorStop(.28, '#61dce4');
+  water.addColorStop(.55, '#b4f4ed'); water.addColorStop(1, '#25b4cf');
+  ctx.fillStyle = water;
   ctx.fill();
 
   // Raised rails and moving water stay tied to track coordinates.
   for (const edge of [left, right]) {
     ctx.beginPath();
     edge.forEach((point, i) => i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
-    ctx.strokeStyle = '#04689988'; ctx.lineWidth = 12; ctx.stroke();
-    ctx.strokeStyle = '#ecfbff'; ctx.lineWidth = 5; ctx.stroke();
+    ctx.strokeStyle = '#075b7588'; ctx.lineWidth = 16; ctx.stroke();
+    ctx.strokeStyle = '#ed8174'; ctx.lineWidth = 11; ctx.stroke();
+    ctx.strokeStyle = '#ffe4cc'; ctx.lineWidth = 4; ctx.stroke();
   }
   for (let i = 0; i < left.length; i += 2) {
     const point = worldToScreen(left[i].t, 0, cameraProgress);
-    const wave = Math.sin(left[i].t * 0.14) * 5;
+    const wave = Math.sin(left[i].t * 0.08 - time * 3) * 4;
     ctx.strokeStyle = '#e4fcff70'; ctx.lineWidth = 1.8 * point.scale;
     for (const lane of [-0.5, 0.45]) {
       ctx.beginPath(); ctx.moveTo(point.cx + point.half * lane - 8, point.y + wave);
@@ -193,6 +209,8 @@ function drawPickups(ctx, state, cameraProgress) {
     if (b.taken) continue;
     const p = worldToScreen(b.t, b.lane, cameraProgress);
     if (p.y < -20 || p.y > H + 20) continue;
+    ctx.fillStyle = 'rgba(0,62,85,.25)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 6 * p.scale, 19 * p.scale, 9 * p.scale, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = P.boost;
     roundRect(ctx, p.x - 16 * p.scale, p.y - 10 * p.scale, 32 * p.scale, 20 * p.scale, 6);
     ctx.fill();
@@ -204,13 +222,13 @@ function drawPickups(ctx, state, cameraProgress) {
   for (const o of state.pickups.obstacles) {
     const p = worldToScreen(o.t, o.lane, cameraProgress);
     if (p.y < -20 || p.y > H + 20) continue;
-    ctx.fillStyle = o.hit ? '#888' : '#ff5a7a';
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y - 14 * p.scale);
-    ctx.lineTo(p.x + 12 * p.scale, p.y + 10 * p.scale);
-    ctx.lineTo(p.x - 12 * p.scale, p.y + 10 * p.scale);
-    ctx.closePath();
-    ctx.fill();
+    ctx.fillStyle = 'rgba(0,62,85,.28)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 8 * p.scale, 16 * p.scale, 6 * p.scale, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = o.hit ? '#a3b7b5' : '#ff6a63';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 13 * p.scale, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff5e5'; ctx.lineWidth = 4 * p.scale; ctx.stroke();
+    ctx.fillStyle = '#fff5e5';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.scale, 0, Math.PI * 2); ctx.fill();
   }
   for (const c of state.pickups.coins) {
     if (c.taken) continue;
@@ -271,15 +289,20 @@ function drawRacer(ctx, racer, cameraProgress, time) {
   ctx.beginPath();
   ctx.ellipse(x, y + 6 * s, 22 * s, 12 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(0,63,80,0.3)';
+  ctx.lineWidth = 2 * s;
   ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 2 * s;
+  ctx.beginPath(); ctx.ellipse(x, y + 3 * s, 17 * s, 7 * s, 0, Math.PI, Math.PI * 1.8); ctx.stroke();
   ctx.fillStyle = P.slide;
   ctx.beginPath();
   ctx.ellipse(x, y + 6 * s, 10 * s, 6 * s, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // 캐릭터
+  // Character silhouette stays separate from its tube for future sprites.
+  ctx.strokeStyle = racer.body; ctx.lineWidth = 6 * s; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x - 7 * s, y - 2 * s); ctx.lineTo(x - 17 * s, y + 2 * s);
+  ctx.moveTo(x + 7 * s, y - 2 * s); ctx.lineTo(x + 17 * s, y + 2 * s); ctx.stroke();
   ctx.fillStyle = racer.body;
   ctx.beginPath();
   ctx.arc(x, y - 10 * s, 11 * s, 0, Math.PI * 2);
@@ -289,6 +312,11 @@ function drawRacer(ctx, racer, cameraProgress, time) {
   ctx.arc(x - 3.5 * s, y - 11 * s, 2.2 * s, 0, Math.PI * 2);
   ctx.arc(x + 3.5 * s, y - 11 * s, 2.2 * s, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = '#164253';
+  ctx.beginPath(); ctx.arc(x - 3.5 * s, y - 11 * s, 1.2 * s, 0, Math.PI * 2);
+  ctx.arc(x + 3.5 * s, y - 11 * s, 1.2 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#164253'; ctx.lineWidth = 1.3 * s;
+  ctx.beginPath(); ctx.arc(x, y - 7 * s, 3 * s, .15, Math.PI - .15); ctx.stroke();
 
   if (racer.boostTimer > 0) {
     ctx.strokeStyle = `rgba(125,255,154,${0.4 + Math.sin(time * 20) * 0.2})`;
@@ -433,8 +461,8 @@ function drawHud(ctx, state, viewTime) {
 }
 
 function render(ctx, state, view) {
-  drawSky(ctx);
-  drawSlideRibbon(ctx, state.cameraProgress);
+  drawSky(ctx, state.cameraProgress);
+  drawSlideRibbon(ctx, state.cameraProgress, view.time);
   drawPool(ctx, state.cameraProgress);
   drawShortcuts(ctx, state.cameraProgress);
   drawPickups(ctx, state, state.cameraProgress);

@@ -42,24 +42,25 @@ test('a full board reports space problem before energy and never consumes energy
   assert.equal(state.energy, 0);
 });
 
-test('stairs left control turns and right control climbs in the facing direction', () => {
+test('stairs turn changes direction and climbs one stair, including its reward', () => {
   const state = stairs();
-  state.steps = [{col:0},{col:1},{col:0},{col:-1},{col:0}];
+  state.steps = [{col:0}, {col:1}, {col:0, coin:true}, {col:-1}, {col:0}];
   updateStairs(state, 0, ['climb']);
-  assert.equal(state.score, 1);
   updateStairs(state, 0, ['turn']);
-  assert.equal(state.score, 1);
   assert.equal(state.facing, -1);
-  for (const action of ['climb', 'climb', 'turn', 'climb']) updateStairs(state, 0, [action]);
+  assert.equal(state.stepIndex, 2);
+  assert.equal(state.score, 2);
+  assert.ok(state.coins > 0);
+  for (const action of ['climb', 'turn']) updateStairs(state, 0, [action]);
   assert.equal(state.score, 4);
   assert.equal(state.phase, 'play');
   assert.equal(state.facing, 1);
 });
 
-test('stairs climbing while facing away from the next step still causes a fall', () => {
+test('stairs turning toward empty space causes a fall without scoring', () => {
   const state = stairs();
+  state.steps = [{col:0}, {col:1}];
   updateStairs(state, 0, ['turn']);
-  updateStairs(state, 0, ['climb']);
   assert.equal(state.phase, 'falling');
   assert.equal(state.score, 0);
 });

@@ -43,8 +43,8 @@ function finishRun(state) {
 
 runner = mountGame({
   title: CONFIG.title,
-  description: '오른쪽 버튼으로 바라보는 방향의 계단을 올라가!\n다음 계단이 반대쪽으로 꺾이면 왼쪽 버튼으로 방향을 바꾼 뒤 다시 올라가. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
-  controls: '왼쪽: 방향 전환 / ←·A·F\n오른쪽: 계단 오르기 / →·D·J\n처음 15계단은 방향을 바꿀 때와 오를 때 해당 버튼이 빛나요. Esc 쉬기',
+  description: '오른쪽 버튼으로 바라보는 방향의 계단을 올라가!\n다음 계단이 반대쪽으로 꺾이면 왼쪽 버튼으로 방향을 바꾸면서 한 칸 올라가. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
+  controls: '왼쪽: 방향 전환하며 오르기 / ←·A·F\n오른쪽: 계단 오르기 / →·D·J\n처음 15계단은 방향을 바꿀 때와 오를 때 해당 버튼이 빛나요. Esc 쉬기',
   width: LAYOUT.width,
   height: LAYOUT.height,
   theme: CONFIG.palette,
@@ -77,7 +77,7 @@ function enqueueAction(action) {
   canvas.focus({ preventScroll: true });
 }
 
-// The left screen half turns the hero; the right half climbs one stair.
+// The left screen half turns and climbs; the right half climbs straight.
 canvas.addEventListener('pointerdown', event => {
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   const rect = canvas.getBoundingClientRect();
