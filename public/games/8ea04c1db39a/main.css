@@ -1,0 +1,37 @@
+/* 가로형 사이드뷰 로켓카 스포츠 */
+:root {
+  --background: #0d1b2a;
+  --primary: #00e5a8;
+  --text: #f2f7fb;
+}
+
+#game-frame {
+  width: min(100vw - 12px, calc((100dvh - 52px) * 1.777));
+  max-width: 1040px;
+}
+
+#game-toolbar [data-game-title] {
+  letter-spacing: -0.4px;
+}
+
+#round-description,
+#game-help {
+  max-width: 40em;
+  white-space: pre-line;
+}
+
+#round-primary {
+  background: var(--primary);
+  color: #06241c;
+}
+
+@media (orientation: portrait) and (max-width: 720px) {
+  body {
+    align-items: start;
+    padding-top: 8px;
+  }
+
+  #game-frame {
+    width: min(100vw - 8px, 100%);
+  }
+}

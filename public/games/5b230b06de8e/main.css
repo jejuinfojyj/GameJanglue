@@ -1,0 +1,32 @@
+/* 로얄매치 왕국·퍼즐 톤 */
+:root {
+  --background: #16324f;
+  --primary: #f0c14b;
+  --text: #fff6e8;
+}
+
+body {
+  background:
+    radial-gradient(circle at 16% 10%, #2f6ea0 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, #3f7d5a55 0%, transparent 42%),
+    #12283f;
+}
+
+#game-canvas {
+  border-radius: 18px;
+  box-shadow: 0 18px 42px #07142099;
+}
+
+#round-primary {
+  background: linear-gradient(180deg, #ffe08a, #f0c14b);
+  color: #1a2a38;
+}
+
+#pause-game {
+  background: #ffffff1f;
+}
+
+#round-description,
+#game-help {
+  white-space: pre-line;
+}

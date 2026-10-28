@@ -1,0 +1,29 @@
+/* 가로 화면 게임: 화면 높이에 맞춰 16:9로 최대한 크게 */
+#game-frame { width: min(100vw, calc((100vh - 42px) * 16 / 9)); max-width: 1180px; }
+@supports (height: 100dvh) { #game-frame { width: min(100vw, calc((100dvh - 42px) * 16 / 9)); } }
+#game-canvas { border-radius: 10px; background: #8fd3f4; }
+#game-toolbar [data-game-title] { font-size: 14px; }
+#pause-game { min-height: 40px; min-width: 64px; }
+
+/* 시작·쉬기·결과 안내는 새총 쪽(왼쪽)에 두고 오른쪽 요새가 보이게 */
+#round-overlay {
+  align-items: center;
+  justify-content: flex-start;
+  background: linear-gradient(90deg, #0b1a2be6 0%, #0b1a2bb8 48%, #0b1a2b30 78%, transparent);
+  padding: 16px 20px;
+}
+.round-sheet { max-width: 430px; }
+#round-heading { color: #ffe066; }
+#round-primary { min-height: 52px; }
+
+.rotate-hint { display: none; margin: 10px 16px 0; font-size: 14px; line-height: 1.5; text-align: center; color: #fffaf0; }
+@media (orientation: portrait) and (max-width: 760px) {
+  .rotate-hint { display: block; }
+}
+@media (max-height: 430px) {
+  #round-overlay { padding: 8px 14px; }
+  #round-heading { font-size: 22px; margin-bottom: 4px; }
+  #round-description, #game-help { font-size: 11px; line-height: 1.45; margin-bottom: 6px; }
+  #round-primary, #round-restart { min-height: 44px; padding: 6px 14px; }
+  .platform-row { margin-top: 6px; }
+}

@@ -1,0 +1,52 @@
+export const CONFIG = {
+  title: '워터슬라이드 레이스',
+  width: 390,
+  height: 700,
+  palette: {
+    background: '#0877a8',
+    surface: '#045f86',
+    primary: '#ffd84a',
+    accent: '#ff6b8a',
+    slide: '#5ee1ff',
+    slideDeep: '#1aa6d6',
+    water: '#0b5f8a',
+    text: '#fff8e8',
+    danger: '#ff4d6d',
+    boost: '#7dff9a',
+    coin: '#ffd24a',
+  },
+  track: {
+    length: 1200,
+    baseWidth: 264,
+    finishPool: 48,
+  },
+  rules: {
+    baseSpeed: 145,
+    maxSpeed: 290,
+    steerSpeed: 2.35,
+    boostForce: 95,
+    boostDuration: 0.85,
+    obstacleSlow: 0.42,
+    obstacleHold: 0.55,
+    jumpDuration: 0.72,
+    jumpBoost: 210,
+    bumpForce: 0.55,
+    fallMargin: 1.08,
+    coinValue: 1,
+    placeBonus: [30, 18, 10, 4],
+  },
+  skins: [
+    { id: 'sunny', name: '써니', body: '#ff8f5a', tube: '#ffe066', cost: 0 },
+    { id: 'mint', name: '민트', body: '#5dffc4', tube: '#e8fff8', cost: 25 },
+    { id: 'coral', name: '코랄', body: '#ff6b9d', tube: '#ffd0e0', cost: 40 },
+    { id: 'violet', name: '바이올렛', body: '#9b7bff', tube: '#e4dbff', cost: 55 },
+    { id: 'gold', name: '골드', body: '#ffc94a', tube: '#fff1b8', cost: 80 },
+  ],
+  rivals: [
+    { name: '파도', body: '#4fc3f7', tube: '#b3e5fc', skill: 0.92 },
+    { name: '스플래시', body: '#81c784', tube: '#c8e6c9', skill: 1.02 },
+    { name: '썬빔', body: '#ffb74d', tube: '#ffe0b2', skill: 0.98 },
+  ],
+};
+
+export const STORAGE_KEY = 'water-slide-race-save-v1';

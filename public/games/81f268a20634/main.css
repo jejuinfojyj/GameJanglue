@@ -1,0 +1,9 @@
+/* 480×800 세로 카드 테이블 화면 */
+body{background:radial-gradient(circle at 50% 30%,#125a40,#062a1e 70%)}
+#game-frame{width:min(100vw,calc((100dvh - 48px)*.6),560px)}
+#game-toolbar [data-game-title]{color:#ffd23f;letter-spacing:.5px}
+#game-canvas{box-shadow:0 0 0 4px #6b4423,0 10px 30px #0008}
+#round-heading{color:#ffd23f}
+#round-primary{background:#e53935;color:#fff}
+#round-overlay{background:linear-gradient(transparent 10%,#03140ecc 50%,#03140ef2)}
+dialog button{background:#e53935;color:#fff}

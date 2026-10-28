@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>우노 카드 파티</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>우노 카드 파티</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="800" aria-label="우노 카드 파티 게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>우노 카드 파티</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"내 친구로 바꾸기","prompt":"여우 루루를 고양이 '나비'로 바꿔줘. 뾰족한 귀와 수염이 있는 회색 고양이 얼굴로 그리고, 우노를 외칠 때 '야옹 우노!'라고 말하게 해줘."},{"title":"빨리 끝나는 경기","prompt":"목표 점수를 500점에서 200점으로 줄이고, 처음 나눠 주는 카드도 5장으로 바꿔서 한 경기가 빨리 끝나게 해줘."},{"title":"+2 이어 내기 규칙","prompt":"누가 +2를 내면 다음 사람이 +2를 이어서 낼 수 있게 해줘. 이어서 내면 뽑을 장수가 계속 쌓이고, 못 내는 사람이 쌓인 카드를 모두 뽑게 해줘."},{"title":"새 특수 카드 만들기","prompt":"'모두 바꾸기' 와일드 카드를 2장 추가해줘. 이 카드를 내면 모든 사람이 손에 든 카드를 다음 사람에게 넘기게 하고, 카드 가운데에 회전 화살표를 그려줘."},{"title":"1대1 대결 모드","prompt":"친구를 곰이 한 명만 남겨서 1대1로 겨루게 해줘. 곰이 실력을 최고로 올리고 테이블을 밤하늘처럼 남색으로 바꿔줘."},{"title":"카드 디자인 바꾸기","prompt":"카드 네 가지 색을 분홍·하늘·연두·보라 파스텔 색으로 바꾸고, 카드 뒷면 가운데 글씨를 내 이름으로 바꿔줘."},{"title":"내 그림으로 바꾸기","prompt":"첨부한 내 그림을 카드 뒷면으로 써줘. 그림은 source/assets 폴더에 넣고 config.mjs의 IMAGES에 연결해줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

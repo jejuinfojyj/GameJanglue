@@ -1,0 +1,5 @@
+#game-canvas { cursor: crosshair; }
+#skin-picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; }
+#skin-picker .skin-label { flex-basis: 100%; font-size: 12px; font-weight: 800; }
+#skin-picker button { min-height: 44px; min-width: 64px; padding: 8px 12px; color: #142416; border: 3px solid transparent; border-radius: 12px; }
+#skin-picker button.is-selected { border-color: #fff; }

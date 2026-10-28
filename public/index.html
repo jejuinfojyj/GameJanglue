@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101313">
+  <title>PLAYROOM — 나의 게임방</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div id="library" class="layout">
+    <aside class="sidebar">
+      <a href="#" class="brand" aria-label="게임방 홈"><span class="brand-mark">p<span>▸</span></span><span>playroom<span class="brand-dot">.</span></span></a>
+      <div class="sidebar-caption">MY COLLECTION</div>
+      <nav id="genre-nav" aria-label="게임 장르"></nav>
+      <div class="sidebar-bottom"><span class="online-dot"></span> 내 컴퓨터의 작은 오락실<p>고르고, 누르고, 플레이.</p><span class="edition">PERSONAL ARCADE / 01</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="breadcrumb">내 라이브러리 <span>/</span> <strong id="breadcrumb-current">모든 게임</strong></div><span class="local-badge"><span class="online-dot"></span> LOCAL PLAY</span></header>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy"><span class="eyebrow">YOUR NEXT LITTLE ADVENTURE</span><h1 id="hero-title">잠깐의 여유,<br>한 판의 즐거움<span>.</span></h1><p>달리고, 맞추고, 새로운 기록에 도전하세요.<br>좋아하는 게임이 모두 이곳에.</p><button class="primary-button" id="random-play"><span>랜덤으로 한 판</span><span aria-hidden="true">↗</span></button></div>
+        <div class="hero-art" aria-hidden="true"><div class="art-grid"></div><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="controller"><div class="controller-top">P L A Y</div><div class="controller-face"><span class="dpad">✚</span><span class="game-buttons"><i></i><i></i></span></div><div class="controller-line"></div></div><span class="float-label label-one">PRESS START</span><span class="float-label label-two">✦ NEW HIGH SCORE</span><span class="art-spark spark-one">✦</span><span class="art-spark spark-two">+</span><span class="art-spark spark-three">✧</span><span class="art-number">01 / ∞</span></div>
+      </section>
+      <section id="recent-section" class="recent-section" hidden aria-label="최근 플레이"><span class="recent-label">LAST PLAYED</span><button id="recent-play"></button><span class="recent-arrow" aria-hidden="true">↗</span></section>
+      <section class="collection" aria-labelledby="collection-title">
+        <div class="collection-heading"><div><div class="eyebrow">PICK YOUR PLAY</div><h2 id="collection-title">모든 게임 <span id="visible-count">17</span></h2></div><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="어떤 게임을 찾으세요?" aria-label="게임 검색" autocomplete="off"><kbd>/</kbd></label></div>
+        <div class="collection-meta"><span id="collection-subtitle">오늘은 어떤 게임을 해 볼까요?</span><span>바로 플레이 <span class="meta-dot">·</span> 설치 없이</span></div>
+        <div id="game-grid" class="game-grid" aria-live="polite"><p class="loading">게임을 불러오고 있어요…</p></div>
+        <div id="empty-state" class="empty-state" hidden><span>⌕</span><h3>찾는 게임이 없어요</h3><p>다른 이름으로 검색하거나 장르를 바꿔 보세요.</p><button id="clear-search" class="secondary-button">검색 초기화</button></div>
+      </section>
+      <footer><span class="footer-brand">playroom.</span><span>작은 화면 속, 끝없는 즐거움.</span><span id="total-count">3 GENRES · 17 GAMES</span></footer>
+    </main>
+  </div>
+  <section id="player" class="player" hidden aria-label="게임 플레이">
+    <header class="player-toolbar"><button id="back-library" class="back-button">← <span>게임 목록</span></button><div class="player-heading"><span id="player-genre"></span><h1 id="player-title"></h1></div><div class="player-actions"><button id="toggle-help" title="조작 방법" aria-expanded="false" aria-controls="player-help">조작법</button><button id="reload-game" title="게임 다시 불러오기">↻ <span>다시 시작</span></button><a id="open-game" target="_blank" rel="noopener" title="새 탭에서 게임 열기">↗ <span>새 탭</span></a><button id="fullscreen-game" title="전체 화면">⛶ <span>전체 화면</span></button></div></header>
+    <aside id="player-help" class="player-help" hidden><strong>이렇게 플레이하세요</strong><p id="player-controls"></p><small>게임 화면을 한 번 클릭하면 키보드로 조작할 수 있어요. Esc는 게임 내 일시 정지에 사용됩니다.</small></aside>
+    <div id="game-stage" class="game-stage"><div id="player-loading" class="player-loading" role="status">게임을 준비하고 있어요…</div><iframe id="game-frame" title="게임 플레이 화면" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe></div>
+  </section>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

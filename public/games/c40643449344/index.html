@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="screen-orientation" content="landscape" />
+    <title>힐 클라임 레이싱</title>
+    <link rel="stylesheet" href="game-shell.css" />
+    <link rel="stylesheet" href="main.css" />
+    <script type="module" src="main.js"></script>
+  </head>
+  <body>
+    <main id="game-frame">
+      <header id="game-toolbar">
+        <span data-game-title>힐 클라임 레이싱</span>
+        <button type="button" id="pause-game" hidden>쉬기 ⏸</button>
+      </header>
+      <canvas id="game-canvas" width="880" height="460" aria-label="힐 클라임 레이싱 게임 화면"></canvas>
+      <section id="round-overlay">
+        <div class="round-sheet">
+          <h1 id="round-heading" data-game-title>힐 클라임 레이싱</h1>
+          <p id="round-description"></p>
+          <p id="game-help"></p>
+          <div class="round-buttons">
+            <button id="round-primary" type="button">게임 시작</button>
+            <button id="round-restart" type="button" hidden>처음부터</button>
+          </div>
+          <div class="platform-row">
+            <span id="game-credit"></span>
+            <button id="install-app" type="button">내 기기에 아이콘 추가</button>
+            <span id="offline-status" role="status"></span>
+            <button id="update-game" type="button" hidden>새 버전 적용</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <dialog id="install-help" aria-labelledby="install-help-title">
+      <h2 id="install-help-title">게임 아이콘 추가하기</h2>
+      <p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p>
+      <button id="close-install-help" type="button">닫기</button>
+    </dialog>
+    
+    <script defer src="game-install.js"></script>
+  <!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"내 자동차 색과 이름 바꾸기","prompt":"클래식 카 이름을 내가 지은 이름으로 바꾸고 차체 색을 파란색 계열로 바꿔줘."},{"title":"더 험한 언덕 만들기","prompt":"시골길 지형을 더 가파르고 울퉁불퉁하게 바꿔서 균형 잡기가 조금 더 어렵게 해줘."},{"title":"새 탈것 추가하기","prompt":"소방차 탈것을 새로 추가하고 가격과 성능(엔진·접지)을 정해 차고에서 살 수 있게 해줘."},{"title":"연료와 코인 규칙 바꾸기","prompt":"연료가 조금 더 천천히 닳게 하고, 코인을 먹으면 점수도 같이 오르도록 바꿔줘."},{"title":"달 스테이지 분위기 바꾸기","prompt":"달 스테이지 하늘과 지면 색을 바꾸고 별이 더 많이 보이게 해줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body>
+</html>

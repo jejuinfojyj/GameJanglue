@@ -1,0 +1,6 @@
+#maker-guide{box-sizing:border-box;width:min(700px,calc(100% - 24px));margin:20px auto;padding:22px;border:1px solid #ffffff30;border-radius:18px;background:#192c3f;color:#f6f8fc;font:15px/1.65 system-ui,-apple-system,'Malgun Gothic',sans-serif;text-align:left}
+#maker-guide h2{margin:0 0 6px;font-size:22px;color:#ffe09b}#maker-guide p{margin:8px 0 14px}
+#maker-guide details{padding:12px 0;border-top:1px solid #ffffff20}#maker-guide summary{cursor:pointer;min-height:36px;font-weight:750}
+#maker-guide details p{white-space:pre-wrap;background:#ffffff0d;padding:12px;border-radius:10px}
+#maker-guide button{min-height:44px;padding:8px 14px;border:0;border-radius:9px;background:#ffe09b;color:#192c3f;font:inherit;cursor:pointer}
+#maker-guide small{display:block;margin-top:12px;color:#c1cfe0;font-size:12px}#maker-guide :focus-visible{outline:3px solid #ffe09b;outline-offset:3px}

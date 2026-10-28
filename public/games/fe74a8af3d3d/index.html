@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>가십하버</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>가십하버</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="740" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>가십하버</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"음식 이름을 한식으로","prompt":"초밥·라멘 체인을 김밥·비빔밥·된장찌개 같은 한식 이름으로 바꾸고, 생성기 이름과 손님 주문도 맞춰 줘."},{"title":"에너지 회복을 빠르게","prompt":"에너지가 더 빨리 차고 최대 에너지를 늘려서 초반에 생성기를 더 자주 누를 수 있게 해 줘."},{"title":"새 가구 추가","prompt":"식당 꾸미기에 주크박스와 테라스 의자를 추가하고, 별 비용과 미리보기에 그려지는 모습도 넣어 줘."},{"title":"손님 보상을 키우기","prompt":"손님에게 음식을 전달할 때 받는 코인과 별이 지금보다 더 많이 나오게 해 줘."},{"title":"판을 7×6으로","prompt":"머지 판을 가로 7칸·세로 6칸으로 키우고 휴대폰 세로 화면에서도 칸이 잘 보이게 레이아웃을 조정해 줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

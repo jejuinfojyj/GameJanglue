@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="screen-orientation" content="landscape" />
+    <title>로켓 리그 사이드와이프</title>
+    <link rel="stylesheet" href="game-shell.css" />
+    <link rel="stylesheet" href="main.css" />
+    <script type="module" src="main.js"></script>
+  </head>
+  <body>
+    <main id="game-frame">
+      <header id="game-toolbar">
+        <span data-game-title>로켓 리그 사이드와이프</span>
+        <button type="button" id="pause-game" hidden>쉬기 ⏸</button>
+      </header>
+      <canvas id="game-canvas" width="960" height="540" aria-label="로켓 리그 사이드와이프 게임 화면"></canvas>
+      <section id="round-overlay">
+        <div class="round-sheet">
+          <h1 id="round-heading" data-game-title>로켓 리그 사이드와이프</h1>
+          <p id="round-description"></p>
+          <p id="game-help"></p>
+          <div class="round-buttons">
+            <button id="round-primary" type="button">게임 시작</button>
+            <button id="round-restart" type="button" hidden>처음부터</button>
+          </div>
+          <div class="platform-row">
+            <span id="game-credit"></span>
+            <button id="install-app" type="button">내 기기에 아이콘 추가</button>
+            <span id="offline-status" role="status"></span>
+            <button id="update-game" type="button" hidden>새 버전 적용</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <dialog id="install-help" aria-labelledby="install-help-title">
+      <h2 id="install-help-title">게임 아이콘 추가하기</h2>
+      <p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p>
+      <button id="close-install-help" type="button">닫기</button>
+    </dialog>
+    <script defer src="game-install.js"></script>
+    
+  <!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"내 차량 색과 이름 바꾸기","prompt":"기본 옥탄 차량 이름을 내가 지은 이름으로 바꾸고, 기본 차체 색을 보라색 계열로 바꿔줘."},{"title":"경기 시간 바꾸기","prompt":"한 판 시간을 90초로 줄이고, 킥오프 대기도 조금 더 짧게 해줘."},{"title":"후프스 골대 위치 바꾸기","prompt":"후프스 모드의 공중 골대를 조금 더 높게 올리고 림 크기도 키워줘."},{"title":"새 부스터 효과 추가","prompt":"무지개 부스터를 새로 추가하고 가격을 정해 차고에서 살 수 있게 해줘."},{"title":"시즌 패스 보상 추가","prompt":"시즌 패스 마지막에 크레딧 300 보상을 하나 더 넣고 XP 조건도 정해줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>워터슬라이드 레이스</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>워터슬라이드 레이스</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="390" height="700" aria-label="워터슬라이드 레이스 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>워터슬라이드 레이스</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"튜브 모양 바꾸기","prompt":"플레이어 튜브를 둥근 도넛 대신 동물 모양 튜브처럼 보이게 그리고, 스킨마다 튜브 실루엣을 조금 다르게 해줘."},{"title":"지름길 하나 더","prompt":"트랙 중반에 지름길 점프 구간을 하나 더 넣고, 착지 레인이 오른쪽이 되게 해줘."},{"title":"장애물 종류 추가","prompt":"물풍선 장애물을 추가해서 맞으면 잠깐 시야가 가려지거나 조향이 미끄럽게 해줘."},{"title":"2바퀴 레이스","prompt":"결승까지 슬라이드를 두 번 돌아야 골인되게 하고, HUD에 현재 바퀴를 보여줘."},{"title":"세레머니 동작","prompt":"1등으로 들어오면 수영장에서 물보라와 함께 손을 크게 흔드는 세레머니를 더 화려하게 해줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

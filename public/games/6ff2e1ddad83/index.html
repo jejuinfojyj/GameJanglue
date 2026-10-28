@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>나의 게임</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>나의 게임</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="680" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>나의 게임</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"블록 색을 파스텔로","prompt":"블록 색을 파스텔 톤으로 바꾸고 배경도 부드러운 하늘색 느낌으로 맞춰 줘."},{"title":"판을 10×10으로","prompt":"게임 판을 10×10으로 키우고 칸 크기와 레이아웃이 휴대폰에서도 맞게 조정해 줘."},{"title":"새 조각 모양 추가","prompt":"십자 모양과 긴 ㄱ자 조각을 더 자주 나오게 추가하고, 3×3 큰 정사각형은 덜 나오게 해 줘."},{"title":"콤보 점수 키우기","prompt":"여러 줄을 한 번에 지우거나 콤보가 이어질 때 점수가 지금보다 훨씬 크게 오르게 해 줘."},{"title":"동물 테마로 바꾸기","prompt":"블록을 동물 발자국·간식 같은 테마로 바꾸고 제목과 안내 문구도 귀엽게 맞춰 줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

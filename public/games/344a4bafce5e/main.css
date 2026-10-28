@@ -1,0 +1,14 @@
+/* 탕탕특공대 — 세로 전장과 메뉴 톤 */
+:root {
+  --background: #1a2430;
+  --primary: #ffd166;
+  --text: #f8f4e8;
+}
+
+#game-frame {
+  box-shadow: 0 18px 40px #00000066;
+}
+
+#round-description {
+  max-width: 36em;
+}

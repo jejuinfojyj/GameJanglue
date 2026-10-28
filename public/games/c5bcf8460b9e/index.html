@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>나의 게임</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>나의 게임</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="720" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>나의 게임</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"공 모양을 고양이 공으로","prompt":"기본 농구공 대신 귀여운 고양이 얼굴 공으로 바꾸고, 해금 공 목록도 고양이·강아지·熊猫 테마로 맞춰 줘. 색과 HUD도 부드러운 톤으로 조정해 줘."},{"title":"움직이는 바스켓 더 많이","prompt":"초반부터 좌우로 천천히 움직이는 바스켓이 나오게 하고, 갈수록 이동 폭과 속도를 키워 줘. 점수 보너스도 조금 올려 줘."},{"title":"타임 어택 모드 추가","prompt":"60초 안에 최대한 많이 넣는 타임 어택 모드를 시작 화면에 추가해 줘. 시간이 줄면 화면 가장자리가 붉어지게 해 줘."},{"title":"더 강한 클린 화염","prompt":"클린 슛 콤보가 3 이상일 때 화염과 화면 흔들림을 더 세게 하고, 콤보 전용 사운드도 더 경쾌하게 바꿔 줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

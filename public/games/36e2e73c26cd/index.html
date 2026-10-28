@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>젬 브롤</title>
+  <link rel="stylesheet" href="game-shell.css" />
+  <link rel="stylesheet" href="main.css" />
+</head>
+<body>
+  <main id="game-frame">
+    <header id="game-toolbar">
+      <span data-game-title>젬 브롤</span>
+      <button type="button" id="pause-game" hidden>쉬기 ⏸</button>
+    </header>
+    <canvas id="game-canvas" width="960" height="540" aria-label="젬 브롤 2D 가로 화면"></canvas>
+    <section id="round-overlay">
+      <div class="round-sheet">
+        <h1 id="round-heading" data-game-title>젬 브롤</h1>
+        <p id="round-description"></p>
+        <p id="game-help"></p>
+        <div class="round-buttons">
+          <button id="round-primary" type="button">게임 시작</button>
+          <button id="round-restart" type="button" hidden>처음부터</button>
+        </div>
+        <div class="platform-row">
+          <span id="game-credit"></span>
+          <button id="install-app" type="button">내 기기에 아이콘 추가</button>
+          <span id="offline-status" role="status"></span>
+          <button id="update-game" type="button" hidden>새 버전 적용</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <dialog id="install-help" aria-labelledby="install-help-title">
+    <h2 id="install-help-title">게임 아이콘 추가하기</h2>
+    <p id="install-instructions">공개된 게임 주소에서 기기에 아이콘을 추가할 수 있어.</p>
+    <button id="close-install-help" type="button">닫기</button>
+  </dialog>
+  <!-- file:// 에서도 실행되도록 번들 스크립트 사용 (ES module 아님) -->
+  <script defer src="app.js"></script>
+  <script defer src="game-install.js"></script>
+  
+
+
+
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"내 브롤러 추가","prompt":"저격수 역할의 새 브롤러를 하나 더 넣고, 가젯은 이동 속도 증가, 궁극기는 장거리 한 발로 해줘."},{"title":"오토에임 범위 조절","prompt":"오른쪽 스틱 오토에임이 더 멀리 있는 적까지 잡아 주고, AUTO 표시도 더 크게 해줘."},{"title":"젬 생성 속도 조절","prompt":"젬 그래버에서 중앙 광산의 젬 생성 간격을 조절하고, 젬을 가진 상대가 더 잘 보이게 해줘."},{"title":"하이퍼차지 연출","prompt":"궁극기 사용 시 잠시 이동·데미지가 올라가는 하이퍼차지 효과를 넣고 노란 오라를 보여줘."},{"title":"스킨 색만 바꾸기","prompt":"쉘리 스킨처럼 보이게 색과 이름만 바꾸고, 공격 이펙트 색도 맞춰줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body>
+</html>

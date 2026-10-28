@@ -1,0 +1,55 @@
+:root {
+  --background: #0f2a1c;
+  --primary: #ffd24a;
+  --text: #fff8e7;
+  --surface: #163528;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 20%, #1f5a38 0%, transparent 55%),
+    linear-gradient(180deg, #0c2218 0%, #07140f 100%);
+}
+
+/* 가로(3D) 게임에 맞게 프레임을 넓게 */
+#game-frame {
+  width: min(100vw - 12px, calc((100dvh - 40px) * 1.78));
+  max-width: 1100px;
+}
+
+#game-toolbar [data-game-title] {
+  letter-spacing: -0.4px;
+}
+
+#round-primary {
+  background: linear-gradient(180deg, #ffe07a, #ffc933);
+  box-shadow: 0 4px 0 #c49210;
+}
+
+#pause-game {
+  background: #ffffff1f;
+}
+
+#game-canvas {
+  border: 2px solid #2f6b48;
+  box-shadow: 0 12px 40px #00000066;
+  background: #0a1c14;
+}
+
+.round-sheet #round-heading {
+  color: #ffd24a;
+  text-shadow: 0 2px 0 #0006;
+}
+
+@media (max-height: 500px) {
+  #round-overlay {
+    padding: 10px 16px 16px;
+  }
+  #round-heading {
+    font-size: 22px;
+  }
+  #round-description,
+  #game-help {
+    font-size: 11px;
+  }
+}

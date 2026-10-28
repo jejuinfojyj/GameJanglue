@@ -1,0 +1,36 @@
+/* 가로형 언덕 레이싱 화면 */
+:root {
+  --background: #1a2a22;
+  --primary: #f0b429;
+  --text: #f4f1e6;
+}
+
+#game-frame {
+  width: min(100vw - 12px, calc((100dvh - 52px) * 1.91));
+  max-width: 980px;
+}
+
+#game-toolbar [data-game-title] {
+  letter-spacing: -0.3px;
+}
+
+#round-description,
+#game-help {
+  max-width: 36em;
+}
+
+#round-primary {
+  background: var(--primary);
+  color: #1a2418;
+}
+
+@media (orientation: portrait) and (max-width: 720px) {
+  body {
+    align-items: start;
+    padding-top: 8px;
+  }
+
+  #game-frame {
+    width: min(100vw - 8px, 100%);
+  }
+}

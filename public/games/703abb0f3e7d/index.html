@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>find out!</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>find out!</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="780" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>find out!</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+
+
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"다락방 찾기 목록 바꾸기","prompt":"따스한 다락방 스테이지의 찾을 물건을 시계·양말 대신 안경·우산·라디오로 바꾸고 위치도 방 안 곳곳에 다시 배치해 줘."},{"title":"새 테마 룸 추가","prompt":"바닷가 상점 스테이지를 추가하고, 조개·파라솔을 찾는 기본 찾기와 그늘막을 드래그해 숨은 선글라스를 찾는 기믹을 넣어 줘."},{"title":"조합 재료 바꾸기","prompt":"장난감 상점의 열쇠·자석 대신 손전등과 사다리를 쓰게 하고, 어두운 구석과 높은 선반을 여는 레시피로 바꿔 줘."},{"title":"이벤트 팩 테마 교체","prompt":"달빛 축제 이벤트 스테이지를 벚꽃 축제로 바꾸고 등불·가면 대신 꽃등·부채를 찾는 구성으로 바꿔 줘."},{"title":"힌트와 캐릭터 대사","prompt":"각 스테이지 마스코트 팁 문구를 더 귀엽게 바꾸고, 힌트를 누르면 다음 목표 이름이 토스트에 더 분명히 나오게 해 줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

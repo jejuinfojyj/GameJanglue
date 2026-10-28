@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>나의 게임</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>나의 게임</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="680" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>나의 게임</h1><p id="round-description"></p><p id="game-help"></p><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"보석을 사탕 테마로","prompt":"보석을 알록달록한 사탕 모양처럼 보이게 바꾸고, 제목과 안내 문구도 달콤한 왕국 느낌으로 맞춰 줘."},{"title":"레벨을 더 쉽게","prompt":"초반 레벨의 목표 개수를 줄이고 이동 횟수를 늘려서 처음 플레이가 더 쉽게 해 줘."},{"title":"새 꾸미기 추가","prompt":"왕국에 연못과 마차 꾸미기를 추가하고, 별 비용과 성에 그려지는 모습도 넣어 줘."},{"title":"폭탄 범위를 키우기","prompt":"폭탄이 터질 때 주변을 지금보다 넓게 지워지게 해 줘."},{"title":"판을 7×7로","prompt":"게임 판을 7×7로 바꾸고 칸 크기와 레이아웃이 휴대폰 세로 화면에서도 맞게 조정해 줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>

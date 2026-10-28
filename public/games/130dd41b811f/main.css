@@ -1,0 +1,17 @@
+/* 끝없는 계단: 도트 그림이 또렷하게 보이도록 하고, 시작·결과 화면의 캐릭터 고르기 칸을 꾸민다. */
+#game-canvas{image-rendering:pixelated;image-rendering:crisp-edges;background:#1b1736;-webkit-tap-highlight-color:transparent}
+.toolbar-actions{display:flex;gap:6px;flex-shrink:0}
+#sound-toggle{min-height:36px;padding:4px 12px;background:#ffffff18;color:inherit;border-radius:10px;font-size:12px}
+#round-overlay{background:linear-gradient(transparent 4%,#0a061acc 40%,#0a061af2)}
+#record-line{margin:0 0 6px;font-size:14px;font-weight:800;color:#ffe08a}
+.shop{margin:0 0 14px}
+.shop-title{margin:10px 0 6px;font-size:13px;font-weight:800;color:#fff3c4;letter-spacing:0}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:flex;flex-direction:column;align-items:center;gap:2px;width:74px;min-height:0;padding:6px 4px 7px;border:2px solid transparent;border-radius:12px;background:#ffffff1c;color:#fff;font-size:12px;font-weight:800;text-shadow:none}
+.chip canvas{width:30px;height:36px;image-rendering:pixelated}
+.chip .name{white-space:nowrap}
+.chip .price{font-size:10px;font-weight:700;color:#ffe08a;white-space:nowrap}
+.chip.selected{border-color:var(--primary);background:#ffcf4a33}
+.chip.locked canvas{filter:brightness(.55)}
+.chip:disabled{opacity:.5;cursor:not-allowed}
+@media(max-height:640px){.chip canvas{width:24px;height:29px}.chip{width:66px;padding:4px 3px}.shop-title{margin:6px 0 4px}}

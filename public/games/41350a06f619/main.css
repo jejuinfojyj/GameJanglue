@@ -1,0 +1,25 @@
+/* 레일 서퍼: 480×800 세로 화면에 맞춘 틀과 시작 화면의 고르기 칸 */
+html, body { overscroll-behavior: none; }
+body { background: radial-gradient(circle at 50% 0%, #3a2a5c, var(--background) 70%); }
+#game-frame { width: min(100vw, calc((100dvh - 48px) * .6)); }
+#game-canvas { background: #2b1f4f; }
+.toolbar-actions { display: flex; gap: 6px; }
+#sound-toggle { min-height: 36px; padding: 4px 12px; background: #ffffff18; color: inherit; border-radius: 10px; font-size: 12px; }
+#round-overlay { background: linear-gradient(transparent 6%, #0b0718aa 42%, #0b0718ee); }
+#round-heading { color: var(--primary); text-shadow: 0 3px 0 #a3481f, 0 6px 14px #0009; }
+#record-line { margin: 0 0 10px; font-size: 13px; font-weight: 800; color: #ffe27a; }
+.shop { margin: 0 0 14px; }
+.shop-title { margin: 6px 0; font-size: 12px; font-weight: 800; color: #ffffffcc; }
+.chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chip { flex: 0 0 auto; display: grid; justify-items: center; gap: 2px; min-width: 84px; min-height: 92px; padding: 6px 8px; border-radius: 14px; background: #ffffff1c; color: #fff; border: 2px solid transparent; }
+.chip canvas { width: 44px; height: 52px; }
+.chip .name { font-size: 12px; }
+.chip .price { font-size: 11px; color: #ffe27a; font-weight: 700; }
+.chip.selected { border-color: var(--primary); background: #ffc83d33; }
+.chip.locked canvas { filter: grayscale(.9) brightness(.7); }
+.chip:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-height: 640px) {
+  .chip { min-height: 74px; min-width: 72px; padding: 4px; }
+  .chip canvas { width: 34px; height: 40px; }
+  .shop-title { margin: 2px 0; }
+}

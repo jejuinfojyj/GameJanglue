@@ -1,0 +1,14 @@
+/* 밝은 과일 가게 화면에 맞춘 메뉴 색. 놀이 장면은 캔버스에 그린다. */
+
+#game-toolbar {
+  color: #5c3418;
+}
+
+#pause-game {
+  background: #ef4b4c;
+  color: #fffaf3;
+}
+
+#round-primary {
+  color: #fffaf3;
+}

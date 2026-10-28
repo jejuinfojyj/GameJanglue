@@ -1,0 +1,41 @@
+/* 가로형 오븐 러너 화면 */
+:root {
+  --background: #2a1520;
+  --surface: #3d1f2c;
+  --primary: #ffb347;
+  --text: #fff6e8;
+}
+
+html,
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, #6b2a3a 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 100%, #c45c3a55 0%, transparent 50%),
+    #1a0d14;
+  color: var(--text);
+}
+
+#game-frame {
+  max-width: min(100vw, 960px);
+}
+
+#game-toolbar {
+  background: linear-gradient(90deg, #3a1828, #5a2a28);
+}
+
+#round-overlay .round-sheet {
+  background: linear-gradient(160deg, #3d1f2c, #2a1520 70%);
+  border: 2px solid #ffb34766;
+  box-shadow: 0 12px 40px #00000066;
+}
+
+#round-primary {
+  background: var(--primary);
+  color: #3a1a10;
+  font-weight: 800;
+}
+
+#install-app {
+  border-color: #ffb34788;
+}

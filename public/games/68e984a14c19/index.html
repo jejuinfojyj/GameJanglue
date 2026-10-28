@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>나의 게임</title><link rel="stylesheet" href="game-shell.css"><link rel="stylesheet" href="main.css"><script type="module" src="main.js"></script></head>
+<body><main id="game-frame"><header id="game-toolbar"><span data-game-title>나의 게임</span><button type="button" id="pause-game" hidden>쉬기 ⏸</button></header><canvas id="game-canvas" width="480" height="680" aria-label="게임 화면"></canvas>
+<section id="round-overlay"><div class="round-sheet"><h1 id="round-heading" data-game-title>나의 게임</h1><p id="round-description"></p><p id="game-help"></p><div id="skin-picker" aria-label="뱀 색 고르기"></div><div class="round-buttons"><button id="round-primary" type="button">게임 시작</button><button id="round-restart" type="button" hidden>처음부터</button></div><div class="platform-row"><span id="game-credit"></span><button id="install-app" type="button">내 기기에 아이콘 추가</button><span id="offline-status" role="status"></span><button id="update-game" type="button" hidden>새 버전 적용</button></div></div></section></main>
+<dialog id="install-help" aria-labelledby="install-help-title"><h2 id="install-help-title">게임 아이콘 추가하기</h2><p id="install-instructions">이 화면은 기본 게임 미리보기야. 나만의 게임을 완성하고 공개하면 내 기기에 아이콘을 추가할 수 있어!</p><button id="close-install-help" type="button">닫기</button></dialog>
+<script defer src="game-install.js"></script>
+<!-- maker-guide:start -->
+<link rel="stylesheet" href="maker-guide.css">
+<script id="maker-guide-data" type="application/json">{"examples":[{"title":"내 뱀 색과 표정 바꾸기","prompt":"플레이어 뱀을 분홍색으로 바꾸고 눈을 더 크게 그려줘. 먹이를 먹으면 잠시 웃는 표정이 나오게 해줘."},{"title":"부스트 규칙 바꾸기","prompt":"부스트를 써도 몸이 줄지 않게 하고, 대신 부스트 게이지가 줄어들었다가 천천히 다시 차오르게 해줘."},{"title":"황금 먹이 효과 더하기","prompt":"빛나는 특별 먹이를 먹으면 3초 동안 다른 뱀 몸에 부딪혀도 탈락하지 않고, 몸 둘레가 금색으로 반짝이게 해줘."},{"title":"경기장을 밤바다로 바꾸기","prompt":"초록 잔디 경기장을 어두운 밤바다로 바꾸고, 일반 먹이는 조개, 특별 먹이는 별 모양으로 그려줘."},{"title":"인공지능 뱀 성격 나누기","prompt":"빨간 뱀은 플레이어 앞을 더 자주 막고, 나머지 뱀은 먹이만 찾아다니게 해줘."}]}</script>
+<script defer src="maker-guide.js"></script>
+<!-- maker-guide:end -->
+</body></html>
