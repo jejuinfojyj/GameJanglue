@@ -132,15 +132,17 @@ function renderPick(ctx, state, view) {
   ctx.fillStyle = '#fff';
   ctx.font = '700 13px "Malgun Gothic", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('← 모드', 60, 40);
+  ctx.fillText('규칙 보기', 60, 40);
 
   const mode = MODES.find((m) => m.id === state.mode);
   ctx.fillStyle = CONFIG.palette.primary;
   ctx.font = '800 30px "Malgun Gothic", sans-serif';
-  ctx.fillText(mode?.name || '젬 브롤', view.width / 2, 48);
+  ctx.fillText('브롤러 선택 · 쉬운 전투', view.width / 2, 48);
   ctx.fillStyle = '#ffffffcc';
   ctx.font = '13px "Malgun Gothic", sans-serif';
   ctx.fillText(mode?.blurb || '', view.width / 2, 76);
+  ctx.fillStyle = '#a7f2c8';
+  ctx.fillText('처음엔 쉘리 추천 · 이동만 해도 자동 공격 · 물러나면 체력 회복', view.width / 2, 108);
 
   const cardW = 84;
   const gap = 10;
@@ -180,12 +182,17 @@ function renderPick(ctx, state, view) {
     ctx.fillStyle = '#ffd98a';
     ctx.font = '600 10px "Malgun Gothic", sans-serif';
     ctx.fillText(b.role, x + cardW / 2, y + 88);
+    if (b.id === 'shelly') {
+      ctx.fillStyle = '#ffe47d';
+      ctx.font = '800 10px "Malgun Gothic", sans-serif';
+      ctx.fillText('추천', x + cardW - 18, y + 16);
+    }
   });
 
   const pick = BRAWLERS[state.pickIndex];
   ctx.fillStyle = '#fff';
   ctx.font = '14px "Malgun Gothic", sans-serif';
-  ctx.fillText(`${pick.name} · ${pick.role} · 가젯 ${pick.gadget.name} · 궁극 ${pick.super.name}`, view.width / 2, 390);
+  ctx.fillText(`${pick.name} · ${pick.role} · HP ${Math.round(pick.hp * CONFIG.rules.playerHpMultiplier)} · 사거리 ${pick.range} · Q ${pick.gadget.name} · E ${pick.super.name}`, view.width / 2, 390);
 
   ctx.fillStyle = CONFIG.palette.primary;
   roundRect(ctx, view.width / 2 - 110, 420, 220, 56, 16);
@@ -278,7 +285,7 @@ function renderFight(ctx, state, view) {
     ctx.beginPath(); ctx.moveTo(pos.x + unit.aimX * radius * 0.4, pos.y + unit.aimY * radius * 0.4);
     ctx.lineTo(pos.x + unit.aimX * (radius + 10), pos.y + unit.aimY * (radius + 10)); ctx.stroke();
     ctx.fillStyle = '#ffffff70'; ctx.beginPath(); ctx.arc(pos.x - radius * 0.3, pos.y - radius * 0.3, radius * 0.28, 0, Math.PI * 2); ctx.fill();
-    if (unit.shield > 0) { ctx.strokeStyle = '#b6e8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos.x, pos.y, radius + 7, 0, Math.PI * 2); ctx.stroke(); }
+    if (unit.shield > 0 || unit.spawnProtection > 0) { ctx.strokeStyle = '#b6e8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos.x, pos.y, radius + 7, 0, Math.PI * 2); ctx.stroke(); }
     ctx.fillStyle = '#092018'; ctx.fillRect(pos.x - 21, pos.y - radius - 13, 42, 6);
     ctx.fillStyle = unit.team === 'ally' ? '#72f5a6' : '#ff8576'; ctx.fillRect(pos.x - 20, pos.y - radius - 12, 40 * Math.max(0, unit.hp / unit.maxHp), 4);
     ctx.font = '800 11px "Malgun Gothic", sans-serif'; ctx.textAlign = 'center';
@@ -286,6 +293,20 @@ function renderFight(ctx, state, view) {
     ctx.fillText(unit.id === 'player' ? 'YOU' : unit.name, pos.x, pos.y + radius + 15);
     if (unit.gems) { ctx.fillStyle = '#f3ceff'; ctx.fillText(`◆ ${unit.gems}`, pos.x, pos.y - radius - 19); }
     ctx.restore();
+  }
+  if (player?.alive) {
+    const pos = project(player.x, player.y);
+    const target = state.aimMode === 'auto' && state.units.find(u => u.id === state.autoTargetId && u.alive);
+    ctx.strokeStyle = state.aimMode === 'auto' ? '#9affc3aa' : '#ffe47daa';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(pos.x + player.aimX * 90, pos.y + player.aimY * 90); ctx.stroke();
+    ctx.setLineDash([]);
+    if (target) {
+      const lock = project(target.x, target.y);
+      ctx.beginPath(); ctx.arc(lock.x, lock.y, BRAWLERS[target.brawlerIndex].radius * scale + 8, 0, Math.PI * 2); ctx.stroke();
+    }
   }
   for (const bullet of state.bullets) {
     const pos = project(bullet.x, bullet.y);
@@ -353,13 +374,19 @@ function renderFight(ctx, state, view) {
 
   if (state.toast > 0 && state.message) {
     ctx.fillStyle = '#000000aa';
-    roundRect(ctx, view.width / 2 - 200, 66, 400, 34, 10);
+    roundRect(ctx, view.width / 2 - 270, 66, 540, 34, 10);
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.font = '700 13px "Malgun Gothic", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(state.message, view.width / 2, 88);
   }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f3d4ff';
+  ctx.font = '700 13px "Malgun Gothic", sans-serif';
+  const ownGems = teamGemCount(state, 'ally');
+  const mineDirection = player && player.y > state.map.mine.y + 80 ? '↑' : player && player.y < state.map.mine.y - 80 ? '↓' : '◆';
+  ctx.fillText(state.holdTeam === 'ally' ? '젬을 지키세요! 뒤로 물러나 함께 버티기' : `${mineDirection} 중앙 광산 · 우리 팀 젬 ${ownGems} / 10`, view.width / 2, 117);
 
   if (player && player.alive) {
     const charged = player.superCharge >= 1;
@@ -384,27 +411,28 @@ function renderFight(ctx, state, view) {
     ctx.font = '800 11px "Malgun Gothic", sans-serif';
     ctx.fillText(`가젯${player.gadgetLeft}`, PAD.GADGET_BTN.x, PAD.GADGET_BTN.y + 4);
 
-    if (state.aimMode === 'auto') {
-      ctx.fillStyle = '#5dffa0';
-      ctx.font = '700 11px "Malgun Gothic", sans-serif';
-      ctx.fillText('AUTO', PAD.RIGHT_STICK.x, PAD.RIGHT_STICK.y - PAD.STICK_R - 8);
-    } else if (state.aimMode === 'manual') {
-      ctx.fillStyle = '#ffd24a';
-      ctx.font = '700 11px "Malgun Gothic", sans-serif';
-      ctx.fillText('AIM', PAD.RIGHT_STICK.x, PAD.RIGHT_STICK.y - PAD.STICK_R - 8);
-    }
+    ctx.fillStyle = '#ffffff22';
+    roundRect(ctx, view.width / 2 - 115, 480, 230, 10, 5); ctx.fill();
+    ctx.fillStyle = '#72f5a6';
+    roundRect(ctx, view.width / 2 - 115, 480, 230 * Math.max(0, player.hp / player.maxHp), 10, 5); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '700 12px "Malgun Gothic", sans-serif';
+    ctx.fillText(`내 HP ${Math.ceil(player.hp)} / ${Math.round(player.maxHp)} · 보유 ◆ ${player.gems}`, view.width / 2, 509);
   }
 
-  drawStick(ctx, PAD.LEFT_STICK, state.sticks.left, '이동', CONFIG.palette.ally);
-  drawStick(ctx, PAD.RIGHT_STICK, state.sticks.right, '공격', CONFIG.palette.danger);
+  ctx.fillStyle = '#a7f2c8'; ctx.font = '700 13px "Malgun Gothic", sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(state.aimMode === 'manual' ? '수동 조준 · 놓으면 자동 공격' : '자동 공격 중 · 이동해서 젬을 모으세요', view.width / 2, 458);
+  ctx.fillStyle = '#ffffffaa'; ctx.font = '11px "Malgun Gothic", sans-serif';
+  ctx.fillText('Q 가젯 · E 궁극 · 피해 없이 3초 → 체력 회복', view.width / 2, 530);
+  drawStick(ctx, state.stickOrigins?.left || PAD.LEFT_STICK, state.sticks.left, '이동', CONFIG.palette.ally);
+  drawStick(ctx, state.stickOrigins?.right || PAD.RIGHT_STICK, state.sticks.right, '드래그 조준', CONFIG.palette.danger);
 }
 
 mountGame({
   title: CONFIG.title,
   description:
-    '2D 전장에서 펼치는 3대3 젬 그래버!\n\n1) 젬 10개를 모아 15초 동안 지키면 승리\n2) 브롤러: 탱커·어쌔신·딜러·저격수·컨트롤러·서포터·투척수\n3) 듀얼 스틱: 살짝=오토에임 / 깊게=수동조준\n4) 가젯·궁극·풀숲 · 약 2~3분',
+    '쉬운 전투로 즐기는 3대3 젬 그래버!\n이동만 해도 가까운 적을 자동으로 조준하고 공격합니다.\n중앙의 젬 10개를 모아 15초 동안 지키세요.\n처음엔 쉘리 추천 · 피해 없이 3초가 지나면 체력이 회복됩니다.',
   controls:
-    '가로 화면 권장 · 왼쪽 스틱 이동 · 오른쪽 살짝 AUTO / 깊게 AIM · 가젯·궁극\nPC: WASD · Space · 클릭 조준 · Q 가젯 · E 궁극 · ESC 쉬기',
+    '휴대폰: 왼쪽 화면 드래그로 이동 · 오른쪽 드래그는 직접 조준(선택)\nPC: WASD·방향키 이동 · 클릭 직접 조준 · Q 가젯 · E 궁극 · ESC 쉬기',
   width: CONFIG.width,
   height: CONFIG.height,
   theme: CONFIG.palette,

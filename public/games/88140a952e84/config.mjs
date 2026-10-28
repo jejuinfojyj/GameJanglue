@@ -18,7 +18,7 @@ export const CONFIG = {
   },
   physics: {
     gravity: 2200,
-    iterations: 7,
+    iterations: 12,
     substep: 1 / 120,
     restitution: 0.06,
     maxSpeed: 1700,
@@ -31,7 +31,8 @@ export const CONFIG = {
     overSeconds: 1.6,
     /** 막 떨어진 과일이 선을 지나가는 동안은 게임 오버로 세지 않는다. */
     overAge: 0.48,
-    mergeSlack: 2,
+    /** 실제 접촉의 부동소수점 오차만 허용한다. 공중 틈으로 합쳐지지 않는다. */
+    mergeSlack: 0.08,
     aimSpeed: 360,
   },
   bestKey: 'suika-best-score',

@@ -380,7 +380,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 mountGame({
   title: CONFIG.title,
   description:
-    '좀비 웨이브 속에서 자동으로 쏘며 버텨 보세요.\n경험치 보석을 모아 레벨 업하면 스킬 3개 중 하나를 고르고, 조건이 맞으면 돌파 진화도 됩니다.',
+    '4분 동안 이동하며 살아남으세요. 공격은 자동!\n초록 보석을 모으면 레벨 업 · 선택 중에는 시간이 멈춥니다.\n쿠나이 Lv.5 + 에너지 드링크 → 다음 레벨에 유령 수리검 돌파!',
   controls:
     '이동만 조작합니다. 휴대폰: 화면을 밀거나 왼쪽 조이스틱. PC: WASD·방향키.\n공격은 자동입니다. ESC로 쉬었다가 이어서 할 수 있어요.',
   width: W,

@@ -102,8 +102,8 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
     color: b.color,
     x: spawn.x,
     y: spawn.y,
-    hp: b.hp * power,
-    maxHp: b.hp * power,
+    hp: b.hp * power * (id === 'player' ? CONFIG.rules.playerHpMultiplier : 1),
+    maxHp: b.hp * power * (id === 'player' ? CONFIG.rules.playerHpMultiplier : 1),
     aimX: team === 'ally' ? 0 : 0,
     aimY: team === 'ally' ? -1 : 1,
     cooldown: 0,
@@ -114,7 +114,9 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
     shield: 0,
     stealth: 0,
     speedMul: 1,
-    damageMul: power,
+    damageMul: power * (id === 'player' ? CONFIG.rules.playerDamageMultiplier : team === 'enemy' ? CONFIG.rules.enemyDamageMultiplier : 1),
+    lastHitAgo: 0,
+    spawnProtection: 1.5,
     gems: 0,
     stars: 0,
     cubes: 0,
@@ -135,7 +137,7 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
 
 function resolveMove(unit, dx, dy, dt, map, speedScale = 1) {
   const b = BRAWLERS[unit.brawlerIndex];
-  const spd = b.speed * (unit.speedMul || 1) * speedScale;
+  const spd = b.speed * (unit.speedMul || 1) * speedScale * (unit.ai && unit.team === 'enemy' ? CONFIG.rules.enemySpeedMultiplier : 1);
   let nx = unit.x + dx * spd * dt;
   let ny = unit.y + dy * spd * dt;
   const r = b.radius;
@@ -183,7 +185,7 @@ function fireNormal(state, unit) {
       if (!other.alive || other.team === unit.team) continue;
       if (dist(unit, other) <= b.range + BRAWLERS[other.brawlerIndex].radius) {
         const d = norm(other.x - unit.x, other.y - unit.y);
-        if (d.x * unit.aimX + d.y * unit.aimY > 0.3) hurt(state, other, b.damage, unit);
+        if (d.x * unit.aimX + d.y * unit.aimY > 0.3) hurt(state, other, b.damage * unit.damageMul, unit);
       }
     }
     unit.cooldown = b.fireRate;
@@ -303,10 +305,11 @@ function useGadget(state, unit) {
 }
 
 function hurt(state, unit, amount, attacker) {
-  if (!unit.alive) return;
+  if (!unit.alive || unit.spawnProtection > 0) return;
   let dmg = amount;
   if (unit.shield > 0) dmg *= 0.45;
   unit.hp -= dmg;
+  unit.lastHitAgo = 0;
   unit.flash = 0.15;
   if (unit.stealth > 0) unit.stealth = 0;
   if (attacker && attacker.alive) {
@@ -374,17 +377,30 @@ function pickNearest(unit, list, pred) {
   return best;
 }
 
+function visibleEnemy(unit, other) {
+  return other.alive && other.team !== unit.team &&
+    (!(other.stealth > 0 || other.hidden) || dist(unit, other) < 70);
+}
+
+function clearShot(state, unit, other) {
+  if (BRAWLERS[unit.brawlerIndex].lob) return true;
+  const distance = dist(unit, other);
+  for (let step = 12; step < distance; step += 12) {
+    const t = step / distance;
+    if (state.map.walls.some(w => circleHitsRect(unit.x + (other.x - unit.x) * t, unit.y + (other.y - unit.y) * t, 5, w))) return false;
+  }
+  return true;
+}
+
 function findAutoAimTarget(state, unit) {
   const b = BRAWLERS[unit.brawlerIndex];
-  const foes = state.units.filter((u) => u.alive && u.team !== unit.team && !(u.stealth > 0));
+  const foes = state.units.filter(u => visibleEnemy(unit, u));
   let best = null;
   let score = Infinity;
   for (const f of foes) {
     const d = dist(unit, f);
-    if (d > b.range * 1.15) continue;
-    // 가까운 적 + 다가오는 적 우선
-    const closing = (unit.x - f.x) * (f.x - unit.x) + (unit.y - f.y) * (f.y - unit.y);
-    const s = d - (closing > 0 ? 40 : 0);
+    if (d > b.range + BRAWLERS[f.brawlerIndex].radius || !clearShot(state, unit, f)) continue;
+    const s = d;
     if (s < score) {
       score = s;
       best = f;
@@ -393,12 +409,12 @@ function findAutoAimTarget(state, unit) {
   return best;
 }
 
-function aiControl(state, unit) {
-  unit.think -= 0.016;
+function aiControl(state, unit, dt) {
+  unit.think -= dt;
   if (unit.think > 0 && unit._aiMove) return unit._aiMove;
-  unit.think = 0.2 + Math.random() * 0.3;
+  unit.think = 0.25 + Math.random() * 0.25;
   const b = BRAWLERS[unit.brawlerIndex];
-  const enemies = state.units.filter((u) => u.alive && u.team !== unit.team);
+  const enemies = state.units.filter(u => visibleEnemy(unit, u));
   const threat = pickNearest(unit, enemies);
   let target = null;
   let shoot = false;
@@ -407,9 +423,11 @@ function aiControl(state, unit) {
 
   if (state.mode === 'gem') {
     const myG = teamGems(state, unit.team);
-    if (unit.hp < unit.maxHp * 0.35) target = pickNearest(unit, state.map.bushes.map((bush) => ({ x: bush.x + bush.w / 2, y: bush.y + bush.h / 2 })));
+    if (unit.hp < unit.maxHp * 0.35 || (myG >= CONFIG.rules.gemWinCount && myG > teamGems(state, unit.team === 'ally' ? 'enemy' : 'ally'))) {
+      target = { x: CONFIG.world.w / 2 + (unit.id.endsWith('1') ? -100 : 100), y: unit.team === 'ally' ? CONFIG.world.h - 240 : 240 };
+    }
     else if (myG < CONFIG.rules.gemWinCount) target = pickNearest(unit, state.gems) || state.map.mine;
-    else target = pickNearest(unit, enemies) || state.map.mine;
+    else target = pickNearest(unit, state.gems) || state.map.mine;
   } else if (state.mode === 'showdown') {
     target = pickNearest(unit, state.crates) || pickNearest(unit, enemies) || { x: CONFIG.world.w / 2, y: CONFIG.world.h / 2 };
   } else if (state.mode === 'ball') {
@@ -422,20 +440,22 @@ function aiControl(state, unit) {
     target = threat;
   }
 
-  if (threat && dist(unit, threat) < b.range * 0.95) {
+  if (threat && dist(unit, threat) < b.range * 0.95 && clearShot(state, unit, threat)) {
     shoot = true;
-    unit.aimX = threat.x - unit.x;
-    unit.aimY = threat.y - unit.y;
+    const aim = norm(threat.x - unit.x, threat.y - unit.y);
+    unit.aimX = aim.x;
+    unit.aimY = aim.y;
     if (unit.superCharge >= 1) useSuper = true;
     if (unit.hp < unit.maxHp * 0.4 && unit.gadgetLeft > 0) useGadgetBtn = true;
   } else if (target) {
-    unit.aimX = (target.x || target.x === 0 ? target.x : target.x) - unit.x;
-    unit.aimY = (target.y || 0) - unit.y;
+    const aim = norm(target.x - unit.x, target.y - unit.y);
+    unit.aimX = aim.x;
+    unit.aimY = aim.y;
   }
 
   let mx = 0;
   let my = 0;
-  if (target) {
+  if (target && dist(unit, target) > 10) {
     const v = norm((target.x || 0) - unit.x, (target.y || 0) - unit.y);
     mx = v.x;
     my = v.y;
@@ -454,144 +474,108 @@ function aiControl(state, unit) {
       my = v.y;
     }
   }
-  unit._aiMove = { move: norm(mx, my), shoot, useSuper, useGadget: useGadgetBtn };
+  // Choose a short clear detour instead of repeatedly walking into cover.
+  let movement = norm(mx, my);
+  const blocked = v => state.map.walls.some(w => circleHitsRect(unit.x + v.x * 45, unit.y + v.y * 45, b.radius + 3, w));
+  if ((mx || my) && blocked(movement)) {
+    const angle = Math.atan2(my, mx);
+    for (const offset of [-Math.PI / 4, Math.PI / 4, -Math.PI / 2, Math.PI / 2]) {
+      const candidate = { x: Math.cos(angle + offset), y: Math.sin(angle + offset) };
+      if (!blocked(candidate)) { movement = candidate; break; }
+    }
+  }
+  unit._aiMove = { move: movement, shoot, useSuper, useGadget: useGadgetBtn };
   return unit._aiMove;
 }
 
 function readPlayerInput(state, input, dt) {
-  const feel = CONFIG.feel || {};
+  const feel = CONFIG.feel;
   const keys = input.keys;
-  let ix = 0;
-  let iy = 0;
-  if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
-  if (keys.has('d') || keys.has('arrowright')) ix += 1;
-  if (keys.has('w') || keys.has('arrowup')) iy -= 1; // fixed north-up
-  if (keys.has('s') || keys.has('arrowdown')) iy += 1;
-
-  let wantAimX = state.playerAim.x;
-  let wantAimY = state.playerAim.y;
-  let shoot = false;
-  let useSuper = keys.has('e') || keys.has('shift');
-  let useGadgetBtn = keys.has('q') || input.pressed.has('q');
-  let aimMode = 'none';
-  let turnSpeed = feel.aimTurn || 2.4;
-  let mouseAim = false;
-
-  let left = null;
-  let right = null;
-  for (const p of input.pointers) {
-    if (!p.down) continue;
-    if (len(p.x - SUPER_BTN.x, p.y - SUPER_BTN.y) <= SUPER_BTN.r + 12) {
-      useSuper = true;
-      continue;
-    }
-    if (len(p.x - GADGET_BTN.x, p.y - GADGET_BTN.y) <= GADGET_BTN.r + 12) {
-      useGadgetBtn = true;
-      continue;
-    }
-    if (p.y > CONFIG.height * 0.58) {
-      if (p.x < CONFIG.width * 0.48 && !left) left = p;
-      else if (p.x >= CONFIG.width * 0.48 && !right) right = p;
-    } else if (inStick(p.x, p.y, LEFT_STICK) && !left) left = p;
-    else if (inStick(p.x, p.y, RIGHT_STICK) && !right) right = p;
+  const player = state.units.find(u => u.id === 'player');
+  let ix = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+  let iy = Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup'));
+  let movement = norm(ix, iy);
+  let useSuper = input.pressed.has('e') || input.pressed.has('shift');
+  let useGadgetBtn = input.pressed.has('q');
+  let left = null, right = null;
+  const pointers = (input.pointers || []).filter(p => p.down);
+  const activeIds = new Set(pointers.map(p => p.id));
+  state.touchControls ||= {};
+  for (const id of Object.keys(state.touchControls)) {
+    if (!activeIds.has(state.touchControls[id].id)) delete state.touchControls[id];
   }
-
-  // 스틱 이동(화면 기준 → 카메라 기준으로 아래에서 변환)
-  if (left) {
-    const v = stickVec(left.x, left.y, LEFT_STICK);
-    if (v.mag > 0.1) {
-      ix = v.x;
-      iy = v.y;
+  let mouseButton = false;
+  for (const p of pointers) {
+    let control = state.touchControls[p.id];
+    const fresh = !control;
+    if (!control) {
+      let role;
+      if (len(p.x - SUPER_BTN.x, p.y - SUPER_BTN.y) <= SUPER_BTN.r + 8) role = 'super';
+      else if (len(p.x - GADGET_BTN.x, p.y - GADGET_BTN.y) <= GADGET_BTN.r + 8) role = 'gadget';
+      else if (p.pointerType === 'mouse') role = 'mouse';
+      else role = p.x < CONFIG.width / 2 ? 'left' : 'right';
+      // Anchor each finger once. Crossing the screen or sliding off a button
+      // must never silently change its role while it remains pressed.
+      control = state.touchControls[p.id] = { id: p.id, role, x: p.x, y: p.y };
     }
+    if (control.role === 'super') { if (fresh) useSuper = true; mouseButton = true; }
+    if (control.role === 'gadget') { if (fresh) useGadgetBtn = true; mouseButton = true; }
+    if (control.role === 'left' && !left) left = { pointer: p, origin: control };
+    if (control.role === 'right' && !right) right = { pointer: p, origin: control };
   }
+  const leftVector = left ? stickVec(left.pointer.x, left.pointer.y, left.origin) : null;
+  if (leftVector) movement = leftVector.mag > 0.12 ? { x: leftVector.x, y: leftVector.y } : { x: 0, y: 0 };
 
-  const movement = norm(ix, iy);
-  const mx = movement.x;
-  const my = movement.y;
-
-  if (right) {
-    const v = stickVec(right.x, right.y, RIGHT_STICK);
+  // Moving alone is enough to play. The right stick and mouse override the
+  // automatic aim; releasing them immediately restores assistance.
+  const target = player?.alive && findAutoAimTarget(state, player);
+  state.autoTargetId = target?.id || null;
+  let want = target ? norm(target.x - player.x, target.y - player.y) : state.playerAim;
+  let shoot = !!target;
+  let aimMode = 'auto';
+  let turnSpeed = feel.stickAimTurn;
+  const rightVector = right ? stickVec(right.pointer.x, right.pointer.y, right.origin) : null;
+  if (rightVector && rightVector.mag > 0.22) {
+    want = norm(rightVector.x, rightVector.y);
     shoot = true;
-    turnSpeed = feel.stickAimTurn || 2.8;
-    if (v.mag < 0.42) {
-      aimMode = 'auto';
-      const player = state.units.find((u) => u.id === 'player');
-      const t = player && findAutoAimTarget(state, player);
-      if (t) {
-        wantAimX = t.x - player.x;
-        wantAimY = t.y - player.y;
-      } else if (v.mag > 0.08) {
-        // 스틱 방향도 카메라 기준으로
-        wantAimX = v.x;
-        wantAimY = v.y;
-      }
-    } else {
-      aimMode = 'manual';
-      wantAimX = v.x;
-      wantAimY = v.y;
-    }
+    aimMode = 'manual';
   }
-
-  if (keys.has(' ')) {
+  const mouseDown = input.pointer.down && !left && !right && !mouseButton &&
+    (input.pointer.pointerType === 'mouse' || !pointers.length);
+  if (mouseDown && player && state.camera.scale) {
+    const hit = screenToWorld(input.pointer.x, input.pointer.y, state.camera);
+    want = norm(hit.x - player.x, hit.y - player.y);
     shoot = true;
-    if (!right) {
-      aimMode = 'auto';
-      turnSpeed = feel.stickAimTurn || 2.8;
-      const player = state.units.find((u) => u.id === 'player');
-      const t = player && findAutoAimTarget(state, player);
-      if (t) {
-        wantAimX = t.x - player.x;
-        wantAimY = t.y - player.y;
-      }
-    }
+    aimMode = 'manual';
+    turnSpeed = feel.mouseAimTurn;
   }
-
-  if (input.pointer.down && input.pointer.y < CONFIG.height * 0.62 && !left && !right) {
-    const player = state.units.find((u) => u.id === 'player');
-    if (player && state.camera.scale) {
-      const hit = screenToWorld(input.pointer.x, input.pointer.y, state.camera);
-      if (hit) {
-        wantAimX = hit.x - player.x;
-        wantAimY = hit.y - player.y;
-        shoot = true;
-        aimMode = 'manual';
-        mouseAim = true;
-        turnSpeed = feel.mouseAimTurn || 1.6;
-      }
-    }
-  }
-
-  // 조준 천천히 회전
-  const aim = turnToward(state.playerAim.x, state.playerAim.y, wantAimX, wantAimY, turnSpeed, dt);
+  if (keys.has(' ')) shoot = true;
+  // Automatic shots line up before firing rather than spraying during a turn.
+  const aim = aimMode === 'auto' && target ? want :
+    turnToward(state.playerAim.x, state.playerAim.y, want.x, want.y, turnSpeed, dt);
   state.playerAim = aim;
 
-  // 이동 가속 보간 + 속도 배율
-  if (!state.moveVel) state.moveVel = { x: 0, y: 0 };
-  const accel = feel.moveAccel || 4.5;
-  const t = 1 - Math.exp(-accel * dt);
-  const scale = feel.moveScale || 0.82;
-  state.moveVel.x += (mx * scale - state.moveVel.x) * t;
-  state.moveVel.y += (my * scale - state.moveVel.y) * t;
-
+  const smoothing = 1 - Math.exp(-feel.moveAccel * dt);
+  if (!movement.x && !movement.y) state.moveVel = { x: 0, y: 0 };
+  else {
+    state.moveVel.x += (movement.x * feel.moveScale - state.moveVel.x) * smoothing;
+    state.moveVel.y += (movement.y * feel.moveScale - state.moveVel.y) * smoothing;
+  }
   state.aimMode = aimMode;
+  state.stickOrigins = { left: left?.origin || LEFT_STICK, right: right?.origin || RIGHT_STICK };
   state.sticks = {
-    left: { x: ix, y: iy, mag: len(ix, iy) },
-    right: right ? stickVec(right.x, right.y, RIGHT_STICK) : { x: aim.x, y: aim.y, mag: shoot ? 1 : 0 },
+    left: leftVector || { ...movement, mag: len(movement.x, movement.y) },
+    right: rightVector || { x: 0, y: 0, mag: 0 },
   };
-  return {
-    move: { x: state.moveVel.x, y: state.moveVel.y },
-    shoot,
-    useSuper,
-    useGadget: useGadgetBtn,
-  };
+  return { move: { ...state.moveVel }, shoot, useSuper, useGadget: useGadgetBtn };
 }
 
 export function createGame() {
   return {
-    phase: 'splash',
+    phase: 'pick',
     modeIndex: 0,
     mode: 'gem',
-    pickIndex: 0,
+    pickIndex: BRAWLERS.findIndex(b => b.id === 'shelly'),
     map: buildMap(),
     units: [],
     bullets: [],
@@ -657,9 +641,11 @@ function startMatch(state) {
     state.crateTimer = 1;
   } else {
     const allyPicks = [pick];
-    for (let i = 0; i < BRAWLERS.length && allyPicks.length < 3; i++) if (!allyPicks.includes(i)) allyPicks.push(i);
-    const enemyPicks = [];
-    for (let i = BRAWLERS.length - 1; i >= 0 && enemyPicks.length < 3; i--) enemyPicks.push(i);
+    for (const id of ['colt', 'poco', 'shelly']) {
+      const index = BRAWLERS.findIndex(b => b.id === id);
+      if (allyPicks.length < 3 && !allyPicks.includes(index)) allyPicks.push(index);
+    }
+    const enemyPicks = [...allyPicks];
     state.units = [
       makeUnit('player', 'ally', allyPicks[0], map.allySpawn[1]),
       makeUnit('ally1', 'ally', allyPicks[1], map.allySpawn[0]),
@@ -693,8 +679,9 @@ function startMatch(state) {
       ? { x: CONFIG.world.w / 2, y: CONFIG.world.h / 2, vx: 0, vy: 0, owner: null }
       : null;
   state.phase = 'fight';
-  state.message = MODES.find((m) => m.id === mode)?.blurb || '';
-  state.toast = 2;
+  state.message = '중앙 ◆로 이동! 자동 공격 · 젬 10개를 모으면 뒤로 물러나 지키세요';
+  state.toast = 6;
+  state.touchControls = {};
   const p0 = state.units.find((u) => u.id === 'player');
   if (p0) {
     state.viewDir = { x: p0.aimX, y: p0.aimY };
@@ -961,6 +948,11 @@ export function updateGame(state, dt, input) {
 
   for (const unit of state.units) {
     unit.cooldown = Math.max(0, unit.cooldown - dt);
+    unit.spawnProtection = Math.max(0, unit.spawnProtection - dt);
+    unit.lastHitAgo += dt;
+    if (unit.alive && unit.lastHitAgo >= CONFIG.rules.recoveryDelay) {
+      unit.hp = Math.min(unit.maxHp, unit.hp + unit.maxHp * CONFIG.rules.recoveryPerSecond * dt);
+    }
     unit.flash = Math.max(0, unit.flash - dt);
     unit.gadgetBuff = Math.max(0, unit.gadgetBuff - dt);
     unit.shield = Math.max(0, unit.shield - dt);
@@ -976,6 +968,8 @@ export function updateGame(state, dt, input) {
         unit.x = spawn.x;
         unit.y = spawn.y;
         unit.gems = 0;
+        unit.spawnProtection = 2;
+        unit.lastHitAgo = 0;
       }
       continue;
     }
@@ -992,7 +986,7 @@ export function updateGame(state, dt, input) {
       unit.aimX = state.playerAim.x;
       unit.aimY = state.playerAim.y;
     } else {
-      const ai = aiControl(state, unit);
+      const ai = aiControl(state, unit, dt);
       move = ai.move;
       shoot = ai.shoot;
       useSuper = ai.useSuper;

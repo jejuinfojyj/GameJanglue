@@ -43,7 +43,7 @@ export const MODES = [
   {
     id: 'soccer1v1',
     name: '1대1 축구',
-    desc: '나 대 AI 한 명. 좌우 골대에 공을 넣으세요.',
+    desc: '나 대 AI 한 명. 오른쪽 주황 골대를 공격하세요.',
     kind: 'soccer',
     allies: 0,
     enemies: 1,
@@ -51,7 +51,7 @@ export const MODES = [
   {
     id: 'soccer2v2',
     name: '2대2 축구',
-    desc: '아군 AI 한 명과 함께 2대2 경기.',
+    desc: '파란 아군 AI와 협동. 오른쪽 주황 골대를 공격하세요.',
     kind: 'soccer',
     allies: 1,
     enemies: 2,
@@ -59,7 +59,7 @@ export const MODES = [
   {
     id: 'hoops',
     name: '후프스(Hoops)',
-    desc: '공중 골대에 공을 넣는 이벤트 모드.',
+    desc: '중앙 후프를 향해 공을 밀면 슛! 위에서 아래로 넣으세요.',
     kind: 'hoops',
     allies: 0,
     enemies: 1,

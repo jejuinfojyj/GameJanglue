@@ -96,8 +96,8 @@ function createBall(x, y) {
 
 function hoopRects() {
   const cx = CONFIG.width / 2;
-  const cy = 150;
-  const rimR = 42;
+  const cy = 240;
+  const rimR = 82;
   return {
     cx,
     cy,
@@ -115,6 +115,9 @@ function resetKickoff(match, favorTeam = 0) {
   match.kickoff = CONFIG.kickoffDelay;
   match.scorerFlash = 0;
   match.lastGoalTeam = favorTeam;
+  match.lastTouchTeam = -1;
+  match.lastTouchPlayer = false;
+  match.playerTouched = false;
 
   for (const car of match.cars) {
     const side = car.team === 0 ? -1 : 1;
@@ -192,6 +195,9 @@ function startMatch(state, modeId) {
     toastT: 0,
     playerGoals: 0,
     lastTouchTeam: 0,
+    lastTouchPlayer: false,
+    playerTouched: false,
+    playerActiveTimer: 0,
     ended: false,
   };
   resetKickoff(state.match);
@@ -320,7 +326,11 @@ function applyCarInput(car, pads, dt) {
       car.jumpHold = 0.18;
     }
   } else {
-    car.av += drive * CONFIG.torque * dt;
+    if (pads.ai) {
+      const target = car.vx < -30 ? Math.PI : 0;
+      const diff = Math.atan2(Math.sin(target - car.angle), Math.cos(target - car.angle));
+      car.av += (diff * 16 - car.av * 6) * dt;
+    } else car.av += drive * CONFIG.torque * dt;
     car.vx += drive * CONFIG.airAccel * dt;
     if (pads.jumpPressed && car.jumpsLeft > 0) {
       if (drive !== 0 && car.flipTimer <= 0) {
@@ -354,42 +364,46 @@ function applyCarInput(car, pads, dt) {
 
 function aiPads(car, match) {
   const ball = match.ball;
-  const goalX = car.team === 0 ? CONFIG.fieldRight : CONFIG.fieldLeft;
+  const direction = car.team === 0 ? 1 : -1;
   const ownGoalX = car.team === 0 ? CONFIG.fieldLeft : CONFIG.fieldRight;
-  const attack = ball.x + ball.vx * 0.35;
-  const behindBall = car.team === 0 ? car.x < attack - 10 : car.x > attack + 10;
-  const pads = { left: false, right: false, jump: false, jumpPressed: false, boost: false };
-
-  let targetX = attack;
-  if (match.mode.kind === 'hoops') {
-    targetX = ball.x;
-  } else if (!behindBall && Math.abs(ball.x - ownGoalX) < 220) {
-    targetX = ball.x + (car.team === 0 ? -50 : 50);
+  const pads = { left: false, right: false, jump: false, jumpPressed: false, boost: false, ai: true };
+  const behind = (ball.x - car.x) * direction > 0;
+  // Pick one attacker from position, including a player who is actively driving.
+  // The other AI covers its own half instead of both chasing through the ball.
+  const teammates = match.cars.filter((c) => c.team === car.team && (!c.isPlayer || match.playerActiveTimer > 0));
+  const cost = (c) => Math.abs(c.x - ball.x) + Math.abs(c.y - ball.y) * 0.25 +
+    ((ball.x - c.x) * direction < 0 ? 180 : 0);
+  const attacker = teammates.reduce((best, c) => !best || cost(c) < cost(best) ? c : best, null);
+  const defending = match.mode.kind === 'soccer' && attacker !== car;
+  let targetX;
+  if (defending) {
+    const depth = clamp((ball.x - ownGoalX) * direction - 210, 100, CONFIG.width * 0.4);
+    targetX = ownGoalX + direction * depth;
+  } else if (behind) {
+    // Stay under high balls, then drive through a low ball toward the opponent.
+    targetX = ball.y < CONFIG.floorY - 110 ? ball.x - direction * 90 : ball.x + direction * 90;
+    if (car.onGround && Math.abs(ball.x - car.x) < 105 && ball.y < CONFIG.floorY - 42 && ball.y > CONFIG.floorY - 180) {
+      pads.jump = true;
+      pads.jumpPressed = true;
+    }
   } else {
-    targetX = ball.x + (goalX > ball.x ? -28 : 28);
+    targetX = ball.x - direction * 115;
+    // Recover over a floor ball. Driving straight back through it creates own goals.
+    if (car.onGround && Math.abs(ball.x - car.x) < 190 && Math.abs(ball.x - car.x) > 75 && ball.y > CONFIG.floorY - 100) {
+      pads.jump = true;
+      pads.jumpPressed = true;
+    }
   }
-
-  if (car.slot === 1 && car.team === 0) targetX = Math.min(targetX, CONFIG.width * 0.45);
-  if (car.slot === 1 && car.team === 1) targetX = Math.max(targetX, CONFIG.width * 0.55);
-
-  if (car.x < targetX - 12) pads.right = true;
-  if (car.x > targetX + 12) pads.left = true;
-
-  const dist = Math.hypot(ball.x - car.x, ball.y - car.y);
-  if (dist < 110 && ball.y < car.y - 10 && car.onGround) {
-    pads.jumpPressed = true;
-    pads.jump = true;
-  }
-  if (!car.onGround && ball.y < car.y && Math.abs(ball.x - car.x) < 80) {
-    pads.boost = true;
-    if (ball.x > car.x) pads.right = true;
-    else pads.left = true;
-  }
-  if (Math.abs(ball.x - car.x) > 160 && behindBall) pads.boost = Math.random() > 0.35;
-  if (match.mode.kind === 'hoops' && ball.y < 260 && dist < 140) {
-    pads.jumpPressed = car.onGround || car.jumpsLeft > 0;
-    pads.boost = true;
-  }
+  targetX = clamp(targetX, CONFIG.fieldLeft + 55, CONFIG.fieldRight - 55);
+  const error = targetX - car.x;
+  let desired = clamp(error * 3, -320, 320);
+  if (!car.onGround) desired = clamp(error * 2.2, -260, 260);
+  if (car.vx < desired - 22) pads.right = true;
+  else if (car.vx > desired + 22) pads.left = true;
+  if (Math.abs(error) < 9 && Math.abs(car.vx) < 28) pads.left = pads.right = false;
+  const facing = Math.cos(car.angle) * direction > 0.9;
+  pads.boost = !defending && behind && car.onGround && facing &&
+    (ball.x - car.x) * direction > 220 && ball.y > CONFIG.floorY - 100;
   return pads;
 }
 
@@ -553,6 +567,23 @@ function collideCarBall(car, ball, mode) {
   if (car.onGround && ball.y > CONFIG.floorY - ball.r - 16 && dy < 12 && Math.abs(nx) > 0.55 && (closing > 30 || -vn > 50)) {
     const loft = mode.kind === 'hoops' ? 620 + approach * 0.6 + (car._boosting ? 140 : 0) : 230 + approach * 0.28;
     ball.vy = Math.min(ball.vy, -Math.min(1050, loft));
+    // A ground shot toward the basket gets a predictable shooting arc. The ball
+    // still flies under gravity and can hit the rim, cars, or an opposing shot.
+    const hoop = hoopRects();
+    if (mode.kind === 'hoops' && nx * (hoop.cx - ball.x) > 0) {
+      ball.vy = -780;
+      let y = ball.y, vy = ball.vy, horizontalTravel = 0, vx = 1;
+      for (let step = 0; step < 300; step++) {
+        const previousY = y;
+        vy += CONFIG.gravity * 0.85 / 120;
+        y += vy / 120;
+        horizontalTravel += vx / 120;
+        vy *= Math.pow(0.7, 1 / 120);
+        vx *= Math.pow(0.55, 1 / 120);
+        if (previousY < hoop.cy && y >= hoop.cy && vy > 0) break;
+      }
+      ball.vx = (hoop.cx - ball.x) / Math.max(0.1, horizontalTravel);
+    }
   }
   ball.vx = clamp(ball.vx, -1150, 1150);
   ball.vy = clamp(ball.vy, -1150, 1150);
@@ -601,7 +632,7 @@ function spawnBurst(match, x, y, color) {
 function scoreGoal(state, team) {
   const m = state.match;
   m.score[team] += 1;
-  if (team === 0) m.playerGoals += 1;
+  if (team === 0 && m.playerTouched && m.lastTouchPlayer) m.playerGoals += 1;
   m.scorerFlash = 1.4;
   m.toast = team === 0 ? '골! 우리 팀' : '실점…';
   m.toastT = 1.4;
@@ -685,6 +716,16 @@ export function createGame() {
 }
 
 export function updateGame(state, dt, input) {
+  // Keep fast bumper/rim collisions consistent on 30/60/120 Hz screens.
+  const steps = Math.max(1, Math.ceil(dt * 120));
+  const heldInput = steps > 1 ? { ...input, pointer: { ...input.pointer, pressed: false }, pressed: new Set() } : input;
+  for (let i = 0; i < steps; i++) {
+    stepGame(state, dt / steps, i === 0 ? input : heldInput);
+    if (state.result) break;
+  }
+}
+
+function stepGame(state, dt, input) {
   state.toastT = Math.max(0, state.toastT - dt);
   if (state._pendingAction) {
     handleAction(state, state._pendingAction);
@@ -698,6 +739,7 @@ export function updateGame(state, dt, input) {
 
   const pads = readControls(state, input);
   const m = state.match;
+  m.playerActiveTimer = pads.left || pads.right || pads.jump || pads.boost ? 2.5 : Math.max(0, m.playerActiveTimer - dt);
   m.toastT = Math.max(0, m.toastT - dt);
   m.scorerFlash = Math.max(0, m.scorerFlash - dt);
 
@@ -734,7 +776,11 @@ export function updateGame(state, dt, input) {
   for (const car of m.cars) {
     car._touchedBall = false;
     collideCarBall(car, m.ball, m.mode);
-    if (car._touchedBall) m.lastTouchTeam = car.team;
+    if (car._touchedBall) {
+      m.lastTouchTeam = car.team;
+      m.lastTouchPlayer = car.isPlayer && m.playerActiveTimer > 0;
+      if (m.lastTouchPlayer) m.playerTouched = true;
+    }
   }
 
   const scored = resolveBall(m.ball, dt, m.mode);

@@ -36,6 +36,7 @@
   <section id="player" class="player" hidden aria-label="게임 플레이">
     <header class="player-toolbar"><button id="back-library" class="back-button">← <span>게임 목록</span></button><div class="player-heading"><span id="player-genre"></span><h1 id="player-title"></h1></div><div class="player-actions"><button id="toggle-help" title="조작 방법" aria-expanded="false" aria-controls="player-help">조작법</button><button id="reload-game" title="게임 다시 불러오기">↻ <span>다시 시작</span></button><a id="open-game" target="_blank" rel="noopener" title="새 탭에서 게임 열기">↗ <span>새 탭</span></a><button id="fullscreen-game" title="전체 화면">⛶ <span>전체 화면</span></button></div></header>
     <aside id="player-help" class="player-help" hidden><strong>이렇게 플레이하세요</strong><p id="player-controls"></p><small>게임 화면을 한 번 클릭하면 키보드로 조작할 수 있어요. Esc는 게임 내 일시 정지에 사용됩니다.</small></aside>
+    <aside id="orientation-hint" class="orientation-hint" hidden>가로 화면 게임이에요. 기기를 가로로 돌리면 조작 버튼이 더 크게 보여요.</aside>
     <div id="game-stage" class="game-stage"><div id="player-loading" class="player-loading" role="status">게임을 준비하고 있어요…</div><iframe id="game-frame" title="게임 플레이 화면" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe></div>
   </section>
   <div id="toast" class="toast" role="status" hidden></div>

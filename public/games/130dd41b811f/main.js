@@ -42,8 +42,8 @@ function finishRun(state) {
 
 runner = mountGame({
   title: CONFIG.title,
-  description: '구름 위까지 이어진 계단을 한 칸씩 올라가자!\n계단이 꺾이는 곳에서는 방향을 바꿔야 해. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
-  controls: '휴대폰: 화면 왼쪽 = 방향 바꾸기, 오른쪽 = 오르기\nPC: F·← 방향 바꾸기 / J·→ 오르기 / Esc 쉬기',
+  description: '다음 계단이 왼쪽이면 왼쪽, 오른쪽이면 오른쪽!\n캐릭터가 보는 방향과 상관없이 계단이 있는 쪽을 눌러 줘. 시간 막대가 다 줄거나 허공을 밟으면 끝!',
+  controls: '왼쪽 한 칸: 화면 왼쪽 / ←·A·F\n오른쪽 한 칸: 화면 오른쪽 / →·D·J\n처음 15계단은 다음 방향 버튼이 빛나요. Esc 쉬기',
   width: LAYOUT.width,
   height: LAYOUT.height,
   theme: CONFIG.palette,
@@ -68,13 +68,13 @@ function syncOverlay(mode) {
   refreshShop();
 }
 
-// 화면 왼쪽 절반은 방향 바꾸기, 오른쪽 절반은 오르기. 손가락마다 한 번씩 입력된다.
+// Screen halves correspond to actual left/right movement, regardless of facing.
 canvas.addEventListener('pointerdown', event => {
   unlockAudio();
   if (runner.mode !== 'play') return;
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   const rect = canvas.getBoundingClientRect();
-  queue.push((event.clientX - rect.left) / rect.width < 0.5 ? 'turn' : 'climb');
+  queue.push((event.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
 });
 
 window.addEventListener('keydown', event => {
@@ -82,8 +82,8 @@ window.addEventListener('keydown', event => {
   if (event.repeat) return;
   const key = event.key.toLowerCase();
   if (runner.mode === 'play') {
-    if (KEYS.climb.includes(key)) queue.push('climb');
-    else if (KEYS.turn.includes(key)) queue.push('turn');
+    if (KEYS.left.includes(key)) queue.push('left');
+    else if (KEYS.right.includes(key)) queue.push('right');
     return;
   }
   if ((key === 'enter' || key === ' ') && runner.mode !== 'pause' && performance.now() - resultAt > 700) {

@@ -10,9 +10,9 @@ export const CONFIG = {
   boardX: 28,
   boardY: 214,
   storageKey: 'gossip-harbor-progress-v1',
-  maxEnergy: 25,
+  maxEnergy: 30,
   spawnCost: 1,
-  energyRegenSec: 18,
+  energyRegenSec: 10,
   eventEnergyBonus: 6,
   ordersNeededForEvent: 4,
   palette: {

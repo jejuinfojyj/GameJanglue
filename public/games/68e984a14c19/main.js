@@ -7,7 +7,7 @@ bindArenaInput(canvas);
 
 const runner = mountGame({
   title: CONFIG.title,
-  description: '넓은 잔디 경기장에서 먹이를 먹어 뱀을 길게 키워. 다른 뱀의 몸은 피하고, 상대가 내 몸에 부딪히면 그 뱀이 남긴 먹이를 주워.',
+  description: '넓은 잔디 경기장에서 먹이를 먹어 뱀을 길게 키워. 내 몸은 통과할 수 있어. 벽과 다른 뱀의 몸은 피하고, 상대가 내 몸에 부딪히면 그 뱀이 남긴 먹이를 주워.',
   controls: '왼쪽 조이스틱으로 방향을 밀고, 오른쪽 부스트를 길게 누르면 빨라져. 부스트는 몸길이를 써. 컴퓨터에서는 마우스나 WASD, 부스트는 클릭이나 스페이스야.',
   width: CONFIG.width,
   height: CONFIG.height,

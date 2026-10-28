@@ -149,17 +149,22 @@ function drawArena(ctx, mode) {
   if (mode.kind === 'soccer') {
     const gh = CONFIG.goalHalfH * 2;
     const gy = CONFIG.floorY - gh;
-    // blue goal (right, team 0 attacks)
-    ctx.fillStyle = '#3aa0ff33';
+    // Each goal uses the defending team's color.
+    ctx.fillStyle = '#ff8a3d33';
     ctx.fillRect(CONFIG.fieldRight - 8, gy, 28, gh);
-    ctx.strokeStyle = '#9fd0ff';
+    ctx.strokeStyle = '#ffc29a';
     ctx.lineWidth = 4;
     ctx.strokeRect(CONFIG.fieldRight - 8, gy, 28, gh);
-    // orange goal (left)
-    ctx.fillStyle = '#ff8a3d33';
+    // Blue team defends the left goal.
+    ctx.fillStyle = '#3aa0ff33';
     ctx.fillRect(CONFIG.fieldLeft - 20, gy, 28, gh);
-    ctx.strokeStyle = '#ffc29a';
+    ctx.strokeStyle = '#9fd0ff';
     ctx.strokeRect(CONFIG.fieldLeft - 20, gy, 28, gh);
+    ctx.font = '700 12px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'left'; ctx.fillStyle = '#9fd0ff';
+    ctx.fillText('내 골대', CONFIG.fieldLeft - 12, gy - 12);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffc29a';
+    ctx.fillText('공격 →', CONFIG.fieldRight + 16, gy - 12);
   } else {
     const hoop = hoopRects();
     ctx.strokeStyle = '#ffb703';
@@ -497,6 +502,8 @@ function drawMatch(ctx, state) {
   ctx.fillStyle = '#9db0c3';
   ctx.font = '600 12px "Malgun Gothic", system-ui, sans-serif';
   ctx.fillText(m.mode.name, W / 2, 66);
+  ctx.font = '600 12px "Malgun Gothic", system-ui, sans-serif';
+  ctx.fillText(m.mode.kind === 'hoops' ? '후프 쪽으로 공을 밀어 띄우세요 · 위에서 아래로 통과하면 골' : '파랑 = 우리 팀 · 오른쪽 주황 골대를 공격하세요 →', W / 2, 84);
 
   const player = m.cars.find((c) => c.isPlayer);
   if (player) {
@@ -613,7 +620,7 @@ function update(state, dt, input) {
 mountGame({
   title: CONFIG.title,
   description:
-    '2D 옆에서 보는 로켓카 축구! 점프·부스트로 공을 차 골을 넣고, 후프스 모드에서는 공중 골대를 노리세요. 한 판 약 2분.',
+    '2D 로켓카 축구! 파란 차를 조종해 오른쪽 주황 골대를 공격하세요. 후프스에서는 중앙 후프 쪽으로 공을 밀면 슛 궤적으로 떠오릅니다. 한 판 약 2분.',
   controls:
     '터치: ◀▶ 이동 · 점프 · 부스트 / 키보드: A·D 이동, W·Space 점프, Shift·E 부스트. 로비에서 모드·차고·시즌 패스를 고르세요.',
   width: W,

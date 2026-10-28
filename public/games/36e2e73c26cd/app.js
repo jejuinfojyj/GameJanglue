@@ -24,7 +24,7 @@ function mountGame(options){
  resize();window.addEventListener('resize',resize);
  const active=new Map();
  function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*width/r.width,y:(e.clientY-r.top)*height/r.height};}
- function sync(e,kind){const p=point(e);Object.assign(input.pointer,p,{inside:p.x>=0&&p.y>=0&&p.x<=width&&p.y<=height});if(kind==='down'){input.pointer.down=true;input.pointer.pressed=true;active.set(e.pointerId,{id:e.pointerId,...p,down:true});}else if(kind==='move'){if(active.has(e.pointerId))active.set(e.pointerId,{id:e.pointerId,...p,down:true});}else{active.delete(e.pointerId);input.pointer.down=active.size>0;input.pointer.released=true;}input.pointers=[...active.values()];}
+ function sync(e,kind){const p=point(e),pointerType=e.pointerType||'mouse';Object.assign(input.pointer,p,{pointerType,inside:p.x>=0&&p.y>=0&&p.x<=width&&p.y<=height});if(kind==='down'){input.pointer.down=true;input.pointer.pressed=true;active.set(e.pointerId,{id:e.pointerId,...p,pointerType,down:true});}else if(kind==='move'){if(active.has(e.pointerId))active.set(e.pointerId,{id:e.pointerId,...p,pointerType,down:true});}else{active.delete(e.pointerId);input.pointer.down=active.size>0;input.pointer.released=true;}input.pointers=[...active.values()];}
  canvas.addEventListener('pointerdown',e=>{if(runner.mode!=='play')return;e.preventDefault();canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);sync(e,'down');});
  canvas.addEventListener('pointermove',e=>{if(runner.mode==='play')sync(e,'move');});
  canvas.addEventListener('pointerup',e=>{if(runner.mode==='play')sync(e,'up');});
@@ -60,9 +60,9 @@ const CONFIG = {
     /** 스틱/오토에임 조준 */
     stickAimTurn: 12,
     /** WASD·이동 입력 가속 보간 */
-    moveAccel: 4.5,
+    moveAccel: 20,
     /** 이동 최고 속도 배율(1=기본) */
-    moveScale: 0.82,
+    moveScale: 1,
   },
   palette: {
     background: '#1a4d2e',
@@ -78,9 +78,15 @@ const CONFIG = {
     gem: '#b14dff',
   },
   rules: {
+    playerHpMultiplier: 1.2,
+    playerDamageMultiplier: 1.15,
+    enemyDamageMultiplier: 0.72,
+    enemySpeedMultiplier: 0.9,
+    recoveryDelay: 3,
+    recoveryPerSecond: 0.12,
     gemWinCount: 10,
     holdSeconds: 15,
-    gemSpawnEvery: 2.2,
+    gemSpawnEvery: 2.8,
     maxGemsOnField: 14,
     respawnSeconds: 3,
     matchSeconds: 150,
@@ -420,8 +426,8 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
     color: b.color,
     x: spawn.x,
     y: spawn.y,
-    hp: b.hp * power,
-    maxHp: b.hp * power,
+    hp: b.hp * power * (id === 'player' ? CONFIG.rules.playerHpMultiplier : 1),
+    maxHp: b.hp * power * (id === 'player' ? CONFIG.rules.playerHpMultiplier : 1),
     aimX: team === 'ally' ? 0 : 0,
     aimY: team === 'ally' ? -1 : 1,
     cooldown: 0,
@@ -432,7 +438,9 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
     shield: 0,
     stealth: 0,
     speedMul: 1,
-    damageMul: power,
+    damageMul: power * (id === 'player' ? CONFIG.rules.playerDamageMultiplier : team === 'enemy' ? CONFIG.rules.enemyDamageMultiplier : 1),
+    lastHitAgo: 0,
+    spawnProtection: 1.5,
     gems: 0,
     stars: 0,
     cubes: 0,
@@ -453,7 +461,7 @@ function makeUnit(id, team, brawlerIndex, spawn, extras = {}) {
 
 function resolveMove(unit, dx, dy, dt, map, speedScale = 1) {
   const b = BRAWLERS[unit.brawlerIndex];
-  const spd = b.speed * (unit.speedMul || 1) * speedScale;
+  const spd = b.speed * (unit.speedMul || 1) * speedScale * (unit.ai && unit.team === 'enemy' ? CONFIG.rules.enemySpeedMultiplier : 1);
   let nx = unit.x + dx * spd * dt;
   let ny = unit.y + dy * spd * dt;
   const r = b.radius;
@@ -501,7 +509,7 @@ function fireNormal(state, unit) {
       if (!other.alive || other.team === unit.team) continue;
       if (dist(unit, other) <= b.range + BRAWLERS[other.brawlerIndex].radius) {
         const d = norm(other.x - unit.x, other.y - unit.y);
-        if (d.x * unit.aimX + d.y * unit.aimY > 0.3) hurt(state, other, b.damage, unit);
+        if (d.x * unit.aimX + d.y * unit.aimY > 0.3) hurt(state, other, b.damage * unit.damageMul, unit);
       }
     }
     unit.cooldown = b.fireRate;
@@ -621,10 +629,11 @@ function useGadget(state, unit) {
 }
 
 function hurt(state, unit, amount, attacker) {
-  if (!unit.alive) return;
+  if (!unit.alive || unit.spawnProtection > 0) return;
   let dmg = amount;
   if (unit.shield > 0) dmg *= 0.45;
   unit.hp -= dmg;
+  unit.lastHitAgo = 0;
   unit.flash = 0.15;
   if (unit.stealth > 0) unit.stealth = 0;
   if (attacker && attacker.alive) {
@@ -692,17 +701,30 @@ function pickNearest(unit, list, pred) {
   return best;
 }
 
+function visibleEnemy(unit, other) {
+  return other.alive && other.team !== unit.team &&
+    (!(other.stealth > 0 || other.hidden) || dist(unit, other) < 70);
+}
+
+function clearShot(state, unit, other) {
+  if (BRAWLERS[unit.brawlerIndex].lob) return true;
+  const distance = dist(unit, other);
+  for (let step = 12; step < distance; step += 12) {
+    const t = step / distance;
+    if (state.map.walls.some(w => circleHitsRect(unit.x + (other.x - unit.x) * t, unit.y + (other.y - unit.y) * t, 5, w))) return false;
+  }
+  return true;
+}
+
 function findAutoAimTarget(state, unit) {
   const b = BRAWLERS[unit.brawlerIndex];
-  const foes = state.units.filter((u) => u.alive && u.team !== unit.team && !(u.stealth > 0));
+  const foes = state.units.filter(u => visibleEnemy(unit, u));
   let best = null;
   let score = Infinity;
   for (const f of foes) {
     const d = dist(unit, f);
-    if (d > b.range * 1.15) continue;
-    // 가까운 적 + 다가오는 적 우선
-    const closing = (unit.x - f.x) * (f.x - unit.x) + (unit.y - f.y) * (f.y - unit.y);
-    const s = d - (closing > 0 ? 40 : 0);
+    if (d > b.range + BRAWLERS[f.brawlerIndex].radius || !clearShot(state, unit, f)) continue;
+    const s = d;
     if (s < score) {
       score = s;
       best = f;
@@ -711,12 +733,12 @@ function findAutoAimTarget(state, unit) {
   return best;
 }
 
-function aiControl(state, unit) {
-  unit.think -= 0.016;
+function aiControl(state, unit, dt) {
+  unit.think -= dt;
   if (unit.think > 0 && unit._aiMove) return unit._aiMove;
-  unit.think = 0.2 + Math.random() * 0.3;
+  unit.think = 0.25 + Math.random() * 0.25;
   const b = BRAWLERS[unit.brawlerIndex];
-  const enemies = state.units.filter((u) => u.alive && u.team !== unit.team);
+  const enemies = state.units.filter(u => visibleEnemy(unit, u));
   const threat = pickNearest(unit, enemies);
   let target = null;
   let shoot = false;
@@ -725,9 +747,11 @@ function aiControl(state, unit) {
 
   if (state.mode === 'gem') {
     const myG = teamGems(state, unit.team);
-    if (unit.hp < unit.maxHp * 0.35) target = pickNearest(unit, state.map.bushes.map((bush) => ({ x: bush.x + bush.w / 2, y: bush.y + bush.h / 2 })));
+    if (unit.hp < unit.maxHp * 0.35 || (myG >= CONFIG.rules.gemWinCount && myG > teamGems(state, unit.team === 'ally' ? 'enemy' : 'ally'))) {
+      target = { x: CONFIG.world.w / 2 + (unit.id.endsWith('1') ? -100 : 100), y: unit.team === 'ally' ? CONFIG.world.h - 240 : 240 };
+    }
     else if (myG < CONFIG.rules.gemWinCount) target = pickNearest(unit, state.gems) || state.map.mine;
-    else target = pickNearest(unit, enemies) || state.map.mine;
+    else target = pickNearest(unit, state.gems) || state.map.mine;
   } else if (state.mode === 'showdown') {
     target = pickNearest(unit, state.crates) || pickNearest(unit, enemies) || { x: CONFIG.world.w / 2, y: CONFIG.world.h / 2 };
   } else if (state.mode === 'ball') {
@@ -740,20 +764,22 @@ function aiControl(state, unit) {
     target = threat;
   }
 
-  if (threat && dist(unit, threat) < b.range * 0.95) {
+  if (threat && dist(unit, threat) < b.range * 0.95 && clearShot(state, unit, threat)) {
     shoot = true;
-    unit.aimX = threat.x - unit.x;
-    unit.aimY = threat.y - unit.y;
+    const aim = norm(threat.x - unit.x, threat.y - unit.y);
+    unit.aimX = aim.x;
+    unit.aimY = aim.y;
     if (unit.superCharge >= 1) useSuper = true;
     if (unit.hp < unit.maxHp * 0.4 && unit.gadgetLeft > 0) useGadgetBtn = true;
   } else if (target) {
-    unit.aimX = (target.x || target.x === 0 ? target.x : target.x) - unit.x;
-    unit.aimY = (target.y || 0) - unit.y;
+    const aim = norm(target.x - unit.x, target.y - unit.y);
+    unit.aimX = aim.x;
+    unit.aimY = aim.y;
   }
 
   let mx = 0;
   let my = 0;
-  if (target) {
+  if (target && dist(unit, target) > 10) {
     const v = norm((target.x || 0) - unit.x, (target.y || 0) - unit.y);
     mx = v.x;
     my = v.y;
@@ -772,144 +798,108 @@ function aiControl(state, unit) {
       my = v.y;
     }
   }
-  unit._aiMove = { move: norm(mx, my), shoot, useSuper, useGadget: useGadgetBtn };
+  // Choose a short clear detour instead of repeatedly walking into cover.
+  let movement = norm(mx, my);
+  const blocked = v => state.map.walls.some(w => circleHitsRect(unit.x + v.x * 45, unit.y + v.y * 45, b.radius + 3, w));
+  if ((mx || my) && blocked(movement)) {
+    const angle = Math.atan2(my, mx);
+    for (const offset of [-Math.PI / 4, Math.PI / 4, -Math.PI / 2, Math.PI / 2]) {
+      const candidate = { x: Math.cos(angle + offset), y: Math.sin(angle + offset) };
+      if (!blocked(candidate)) { movement = candidate; break; }
+    }
+  }
+  unit._aiMove = { move: movement, shoot, useSuper, useGadget: useGadgetBtn };
   return unit._aiMove;
 }
 
 function readPlayerInput(state, input, dt) {
-  const feel = CONFIG.feel || {};
+  const feel = CONFIG.feel;
   const keys = input.keys;
-  let ix = 0;
-  let iy = 0;
-  if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
-  if (keys.has('d') || keys.has('arrowright')) ix += 1;
-  if (keys.has('w') || keys.has('arrowup')) iy -= 1; // fixed north-up
-  if (keys.has('s') || keys.has('arrowdown')) iy += 1;
-
-  let wantAimX = state.playerAim.x;
-  let wantAimY = state.playerAim.y;
-  let shoot = false;
-  let useSuper = keys.has('e') || keys.has('shift');
-  let useGadgetBtn = keys.has('q') || input.pressed.has('q');
-  let aimMode = 'none';
-  let turnSpeed = feel.aimTurn || 2.4;
-  let mouseAim = false;
-
-  let left = null;
-  let right = null;
-  for (const p of input.pointers) {
-    if (!p.down) continue;
-    if (len(p.x - SUPER_BTN.x, p.y - SUPER_BTN.y) <= SUPER_BTN.r + 12) {
-      useSuper = true;
-      continue;
-    }
-    if (len(p.x - GADGET_BTN.x, p.y - GADGET_BTN.y) <= GADGET_BTN.r + 12) {
-      useGadgetBtn = true;
-      continue;
-    }
-    if (p.y > CONFIG.height * 0.58) {
-      if (p.x < CONFIG.width * 0.48 && !left) left = p;
-      else if (p.x >= CONFIG.width * 0.48 && !right) right = p;
-    } else if (inStick(p.x, p.y, LEFT_STICK) && !left) left = p;
-    else if (inStick(p.x, p.y, RIGHT_STICK) && !right) right = p;
+  const player = state.units.find(u => u.id === 'player');
+  let ix = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+  let iy = Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup'));
+  let movement = norm(ix, iy);
+  let useSuper = input.pressed.has('e') || input.pressed.has('shift');
+  let useGadgetBtn = input.pressed.has('q');
+  let left = null, right = null;
+  const pointers = (input.pointers || []).filter(p => p.down);
+  const activeIds = new Set(pointers.map(p => p.id));
+  state.touchControls ||= {};
+  for (const id of Object.keys(state.touchControls)) {
+    if (!activeIds.has(state.touchControls[id].id)) delete state.touchControls[id];
   }
-
-  // 스틱 이동(화면 기준 → 카메라 기준으로 아래에서 변환)
-  if (left) {
-    const v = stickVec(left.x, left.y, LEFT_STICK);
-    if (v.mag > 0.1) {
-      ix = v.x;
-      iy = v.y;
+  let mouseButton = false;
+  for (const p of pointers) {
+    let control = state.touchControls[p.id];
+    const fresh = !control;
+    if (!control) {
+      let role;
+      if (len(p.x - SUPER_BTN.x, p.y - SUPER_BTN.y) <= SUPER_BTN.r + 8) role = 'super';
+      else if (len(p.x - GADGET_BTN.x, p.y - GADGET_BTN.y) <= GADGET_BTN.r + 8) role = 'gadget';
+      else if (p.pointerType === 'mouse') role = 'mouse';
+      else role = p.x < CONFIG.width / 2 ? 'left' : 'right';
+      // Anchor each finger once. Crossing the screen or sliding off a button
+      // must never silently change its role while it remains pressed.
+      control = state.touchControls[p.id] = { id: p.id, role, x: p.x, y: p.y };
     }
+    if (control.role === 'super') { if (fresh) useSuper = true; mouseButton = true; }
+    if (control.role === 'gadget') { if (fresh) useGadgetBtn = true; mouseButton = true; }
+    if (control.role === 'left' && !left) left = { pointer: p, origin: control };
+    if (control.role === 'right' && !right) right = { pointer: p, origin: control };
   }
+  const leftVector = left ? stickVec(left.pointer.x, left.pointer.y, left.origin) : null;
+  if (leftVector) movement = leftVector.mag > 0.12 ? { x: leftVector.x, y: leftVector.y } : { x: 0, y: 0 };
 
-  const movement = norm(ix, iy);
-  const mx = movement.x;
-  const my = movement.y;
-
-  if (right) {
-    const v = stickVec(right.x, right.y, RIGHT_STICK);
+  // Moving alone is enough to play. The right stick and mouse override the
+  // automatic aim; releasing them immediately restores assistance.
+  const target = player?.alive && findAutoAimTarget(state, player);
+  state.autoTargetId = target?.id || null;
+  let want = target ? norm(target.x - player.x, target.y - player.y) : state.playerAim;
+  let shoot = !!target;
+  let aimMode = 'auto';
+  let turnSpeed = feel.stickAimTurn;
+  const rightVector = right ? stickVec(right.pointer.x, right.pointer.y, right.origin) : null;
+  if (rightVector && rightVector.mag > 0.22) {
+    want = norm(rightVector.x, rightVector.y);
     shoot = true;
-    turnSpeed = feel.stickAimTurn || 2.8;
-    if (v.mag < 0.42) {
-      aimMode = 'auto';
-      const player = state.units.find((u) => u.id === 'player');
-      const t = player && findAutoAimTarget(state, player);
-      if (t) {
-        wantAimX = t.x - player.x;
-        wantAimY = t.y - player.y;
-      } else if (v.mag > 0.08) {
-        // 스틱 방향도 카메라 기준으로
-        wantAimX = v.x;
-        wantAimY = v.y;
-      }
-    } else {
-      aimMode = 'manual';
-      wantAimX = v.x;
-      wantAimY = v.y;
-    }
+    aimMode = 'manual';
   }
-
-  if (keys.has(' ')) {
+  const mouseDown = input.pointer.down && !left && !right && !mouseButton &&
+    (input.pointer.pointerType === 'mouse' || !pointers.length);
+  if (mouseDown && player && state.camera.scale) {
+    const hit = screenToWorld(input.pointer.x, input.pointer.y, state.camera);
+    want = norm(hit.x - player.x, hit.y - player.y);
     shoot = true;
-    if (!right) {
-      aimMode = 'auto';
-      turnSpeed = feel.stickAimTurn || 2.8;
-      const player = state.units.find((u) => u.id === 'player');
-      const t = player && findAutoAimTarget(state, player);
-      if (t) {
-        wantAimX = t.x - player.x;
-        wantAimY = t.y - player.y;
-      }
-    }
+    aimMode = 'manual';
+    turnSpeed = feel.mouseAimTurn;
   }
-
-  if (input.pointer.down && input.pointer.y < CONFIG.height * 0.62 && !left && !right) {
-    const player = state.units.find((u) => u.id === 'player');
-    if (player && state.camera.scale) {
-      const hit = screenToWorld(input.pointer.x, input.pointer.y, state.camera);
-      if (hit) {
-        wantAimX = hit.x - player.x;
-        wantAimY = hit.y - player.y;
-        shoot = true;
-        aimMode = 'manual';
-        mouseAim = true;
-        turnSpeed = feel.mouseAimTurn || 1.6;
-      }
-    }
-  }
-
-  // 조준 천천히 회전
-  const aim = turnToward(state.playerAim.x, state.playerAim.y, wantAimX, wantAimY, turnSpeed, dt);
+  if (keys.has(' ')) shoot = true;
+  // Automatic shots line up before firing rather than spraying during a turn.
+  const aim = aimMode === 'auto' && target ? want :
+    turnToward(state.playerAim.x, state.playerAim.y, want.x, want.y, turnSpeed, dt);
   state.playerAim = aim;
 
-  // 이동 가속 보간 + 속도 배율
-  if (!state.moveVel) state.moveVel = { x: 0, y: 0 };
-  const accel = feel.moveAccel || 4.5;
-  const t = 1 - Math.exp(-accel * dt);
-  const scale = feel.moveScale || 0.82;
-  state.moveVel.x += (mx * scale - state.moveVel.x) * t;
-  state.moveVel.y += (my * scale - state.moveVel.y) * t;
-
+  const smoothing = 1 - Math.exp(-feel.moveAccel * dt);
+  if (!movement.x && !movement.y) state.moveVel = { x: 0, y: 0 };
+  else {
+    state.moveVel.x += (movement.x * feel.moveScale - state.moveVel.x) * smoothing;
+    state.moveVel.y += (movement.y * feel.moveScale - state.moveVel.y) * smoothing;
+  }
   state.aimMode = aimMode;
+  state.stickOrigins = { left: left?.origin || LEFT_STICK, right: right?.origin || RIGHT_STICK };
   state.sticks = {
-    left: { x: ix, y: iy, mag: len(ix, iy) },
-    right: right ? stickVec(right.x, right.y, RIGHT_STICK) : { x: aim.x, y: aim.y, mag: shoot ? 1 : 0 },
+    left: leftVector || { ...movement, mag: len(movement.x, movement.y) },
+    right: rightVector || { x: 0, y: 0, mag: 0 },
   };
-  return {
-    move: { x: state.moveVel.x, y: state.moveVel.y },
-    shoot,
-    useSuper,
-    useGadget: useGadgetBtn,
-  };
+  return { move: { ...state.moveVel }, shoot, useSuper, useGadget: useGadgetBtn };
 }
 
 function createGame() {
   return {
-    phase: 'splash',
+    phase: 'pick',
     modeIndex: 0,
     mode: 'gem',
-    pickIndex: 0,
+    pickIndex: BRAWLERS.findIndex(b => b.id === 'shelly'),
     map: buildMap(),
     units: [],
     bullets: [],
@@ -975,9 +965,11 @@ function startMatch(state) {
     state.crateTimer = 1;
   } else {
     const allyPicks = [pick];
-    for (let i = 0; i < BRAWLERS.length && allyPicks.length < 3; i++) if (!allyPicks.includes(i)) allyPicks.push(i);
-    const enemyPicks = [];
-    for (let i = BRAWLERS.length - 1; i >= 0 && enemyPicks.length < 3; i--) enemyPicks.push(i);
+    for (const id of ['colt', 'poco', 'shelly']) {
+      const index = BRAWLERS.findIndex(b => b.id === id);
+      if (allyPicks.length < 3 && !allyPicks.includes(index)) allyPicks.push(index);
+    }
+    const enemyPicks = [...allyPicks];
     state.units = [
       makeUnit('player', 'ally', allyPicks[0], map.allySpawn[1]),
       makeUnit('ally1', 'ally', allyPicks[1], map.allySpawn[0]),
@@ -1011,8 +1003,9 @@ function startMatch(state) {
       ? { x: CONFIG.world.w / 2, y: CONFIG.world.h / 2, vx: 0, vy: 0, owner: null }
       : null;
   state.phase = 'fight';
-  state.message = MODES.find((m) => m.id === mode)?.blurb || '';
-  state.toast = 2;
+  state.message = '중앙 ◆로 이동! 자동 공격 · 젬 10개를 모으면 뒤로 물러나 지키세요';
+  state.toast = 6;
+  state.touchControls = {};
   const p0 = state.units.find((u) => u.id === 'player');
   if (p0) {
     state.viewDir = { x: p0.aimX, y: p0.aimY };
@@ -1279,6 +1272,11 @@ function updateGame(state, dt, input) {
 
   for (const unit of state.units) {
     unit.cooldown = Math.max(0, unit.cooldown - dt);
+    unit.spawnProtection = Math.max(0, unit.spawnProtection - dt);
+    unit.lastHitAgo += dt;
+    if (unit.alive && unit.lastHitAgo >= CONFIG.rules.recoveryDelay) {
+      unit.hp = Math.min(unit.maxHp, unit.hp + unit.maxHp * CONFIG.rules.recoveryPerSecond * dt);
+    }
     unit.flash = Math.max(0, unit.flash - dt);
     unit.gadgetBuff = Math.max(0, unit.gadgetBuff - dt);
     unit.shield = Math.max(0, unit.shield - dt);
@@ -1294,6 +1292,8 @@ function updateGame(state, dt, input) {
         unit.x = spawn.x;
         unit.y = spawn.y;
         unit.gems = 0;
+        unit.spawnProtection = 2;
+        unit.lastHitAgo = 0;
       }
       continue;
     }
@@ -1310,7 +1310,7 @@ function updateGame(state, dt, input) {
       unit.aimX = state.playerAim.x;
       unit.aimY = state.playerAim.y;
     } else {
-      const ai = aiControl(state, unit);
+      const ai = aiControl(state, unit, dt);
       move = ai.move;
       shoot = ai.shoot;
       useSuper = ai.useSuper;
@@ -1581,15 +1581,17 @@ function renderPick(ctx, state, view) {
   ctx.fillStyle = '#fff';
   ctx.font = '700 13px "Malgun Gothic", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('← 모드', 60, 40);
+  ctx.fillText('규칙 보기', 60, 40);
 
   const mode = MODES.find((m) => m.id === state.mode);
   ctx.fillStyle = CONFIG.palette.primary;
   ctx.font = '800 30px "Malgun Gothic", sans-serif';
-  ctx.fillText(mode?.name || '젬 브롤', view.width / 2, 48);
+  ctx.fillText('브롤러 선택 · 쉬운 전투', view.width / 2, 48);
   ctx.fillStyle = '#ffffffcc';
   ctx.font = '13px "Malgun Gothic", sans-serif';
   ctx.fillText(mode?.blurb || '', view.width / 2, 76);
+  ctx.fillStyle = '#a7f2c8';
+  ctx.fillText('처음엔 쉘리 추천 · 이동만 해도 자동 공격 · 물러나면 체력 회복', view.width / 2, 108);
 
   const cardW = 84;
   const gap = 10;
@@ -1629,12 +1631,17 @@ function renderPick(ctx, state, view) {
     ctx.fillStyle = '#ffd98a';
     ctx.font = '600 10px "Malgun Gothic", sans-serif';
     ctx.fillText(b.role, x + cardW / 2, y + 88);
+    if (b.id === 'shelly') {
+      ctx.fillStyle = '#ffe47d';
+      ctx.font = '800 10px "Malgun Gothic", sans-serif';
+      ctx.fillText('추천', x + cardW - 18, y + 16);
+    }
   });
 
   const pick = BRAWLERS[state.pickIndex];
   ctx.fillStyle = '#fff';
   ctx.font = '14px "Malgun Gothic", sans-serif';
-  ctx.fillText(`${pick.name} · ${pick.role} · 가젯 ${pick.gadget.name} · 궁극 ${pick.super.name}`, view.width / 2, 390);
+  ctx.fillText(`${pick.name} · ${pick.role} · HP ${Math.round(pick.hp * CONFIG.rules.playerHpMultiplier)} · 사거리 ${pick.range} · Q ${pick.gadget.name} · E ${pick.super.name}`, view.width / 2, 390);
 
   ctx.fillStyle = CONFIG.palette.primary;
   roundRect(ctx, view.width / 2 - 110, 420, 220, 56, 16);
@@ -1727,7 +1734,7 @@ function renderFight(ctx, state, view) {
     ctx.beginPath(); ctx.moveTo(pos.x + unit.aimX * radius * 0.4, pos.y + unit.aimY * radius * 0.4);
     ctx.lineTo(pos.x + unit.aimX * (radius + 10), pos.y + unit.aimY * (radius + 10)); ctx.stroke();
     ctx.fillStyle = '#ffffff70'; ctx.beginPath(); ctx.arc(pos.x - radius * 0.3, pos.y - radius * 0.3, radius * 0.28, 0, Math.PI * 2); ctx.fill();
-    if (unit.shield > 0) { ctx.strokeStyle = '#b6e8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos.x, pos.y, radius + 7, 0, Math.PI * 2); ctx.stroke(); }
+    if (unit.shield > 0 || unit.spawnProtection > 0) { ctx.strokeStyle = '#b6e8ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pos.x, pos.y, radius + 7, 0, Math.PI * 2); ctx.stroke(); }
     ctx.fillStyle = '#092018'; ctx.fillRect(pos.x - 21, pos.y - radius - 13, 42, 6);
     ctx.fillStyle = unit.team === 'ally' ? '#72f5a6' : '#ff8576'; ctx.fillRect(pos.x - 20, pos.y - radius - 12, 40 * Math.max(0, unit.hp / unit.maxHp), 4);
     ctx.font = '800 11px "Malgun Gothic", sans-serif'; ctx.textAlign = 'center';
@@ -1735,6 +1742,20 @@ function renderFight(ctx, state, view) {
     ctx.fillText(unit.id === 'player' ? 'YOU' : unit.name, pos.x, pos.y + radius + 15);
     if (unit.gems) { ctx.fillStyle = '#f3ceff'; ctx.fillText(`◆ ${unit.gems}`, pos.x, pos.y - radius - 19); }
     ctx.restore();
+  }
+  if (player?.alive) {
+    const pos = project(player.x, player.y);
+    const target = state.aimMode === 'auto' && state.units.find(u => u.id === state.autoTargetId && u.alive);
+    ctx.strokeStyle = state.aimMode === 'auto' ? '#9affc3aa' : '#ffe47daa';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(pos.x + player.aimX * 90, pos.y + player.aimY * 90); ctx.stroke();
+    ctx.setLineDash([]);
+    if (target) {
+      const lock = project(target.x, target.y);
+      ctx.beginPath(); ctx.arc(lock.x, lock.y, BRAWLERS[target.brawlerIndex].radius * scale + 8, 0, Math.PI * 2); ctx.stroke();
+    }
   }
   for (const bullet of state.bullets) {
     const pos = project(bullet.x, bullet.y);
@@ -1802,13 +1823,19 @@ function renderFight(ctx, state, view) {
 
   if (state.toast > 0 && state.message) {
     ctx.fillStyle = '#000000aa';
-    roundRect(ctx, view.width / 2 - 200, 66, 400, 34, 10);
+    roundRect(ctx, view.width / 2 - 270, 66, 540, 34, 10);
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.font = '700 13px "Malgun Gothic", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(state.message, view.width / 2, 88);
   }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f3d4ff';
+  ctx.font = '700 13px "Malgun Gothic", sans-serif';
+  const ownGems = teamGemCount(state, 'ally');
+  const mineDirection = player && player.y > state.map.mine.y + 80 ? '↑' : player && player.y < state.map.mine.y - 80 ? '↓' : '◆';
+  ctx.fillText(state.holdTeam === 'ally' ? '젬을 지키세요! 뒤로 물러나 함께 버티기' : `${mineDirection} 중앙 광산 · 우리 팀 젬 ${ownGems} / 10`, view.width / 2, 117);
 
   if (player && player.alive) {
     const charged = player.superCharge >= 1;
@@ -1833,27 +1860,28 @@ function renderFight(ctx, state, view) {
     ctx.font = '800 11px "Malgun Gothic", sans-serif';
     ctx.fillText(`가젯${player.gadgetLeft}`, PAD.GADGET_BTN.x, PAD.GADGET_BTN.y + 4);
 
-    if (state.aimMode === 'auto') {
-      ctx.fillStyle = '#5dffa0';
-      ctx.font = '700 11px "Malgun Gothic", sans-serif';
-      ctx.fillText('AUTO', PAD.RIGHT_STICK.x, PAD.RIGHT_STICK.y - PAD.STICK_R - 8);
-    } else if (state.aimMode === 'manual') {
-      ctx.fillStyle = '#ffd24a';
-      ctx.font = '700 11px "Malgun Gothic", sans-serif';
-      ctx.fillText('AIM', PAD.RIGHT_STICK.x, PAD.RIGHT_STICK.y - PAD.STICK_R - 8);
-    }
+    ctx.fillStyle = '#ffffff22';
+    roundRect(ctx, view.width / 2 - 115, 480, 230, 10, 5); ctx.fill();
+    ctx.fillStyle = '#72f5a6';
+    roundRect(ctx, view.width / 2 - 115, 480, 230 * Math.max(0, player.hp / player.maxHp), 10, 5); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '700 12px "Malgun Gothic", sans-serif';
+    ctx.fillText(`내 HP ${Math.ceil(player.hp)} / ${Math.round(player.maxHp)} · 보유 ◆ ${player.gems}`, view.width / 2, 509);
   }
 
-  drawStick(ctx, PAD.LEFT_STICK, state.sticks.left, '이동', CONFIG.palette.ally);
-  drawStick(ctx, PAD.RIGHT_STICK, state.sticks.right, '공격', CONFIG.palette.danger);
+  ctx.fillStyle = '#a7f2c8'; ctx.font = '700 13px "Malgun Gothic", sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(state.aimMode === 'manual' ? '수동 조준 · 놓으면 자동 공격' : '자동 공격 중 · 이동해서 젬을 모으세요', view.width / 2, 458);
+  ctx.fillStyle = '#ffffffaa'; ctx.font = '11px "Malgun Gothic", sans-serif';
+  ctx.fillText('Q 가젯 · E 궁극 · 피해 없이 3초 → 체력 회복', view.width / 2, 530);
+  drawStick(ctx, state.stickOrigins?.left || PAD.LEFT_STICK, state.sticks.left, '이동', CONFIG.palette.ally);
+  drawStick(ctx, state.stickOrigins?.right || PAD.RIGHT_STICK, state.sticks.right, '드래그 조준', CONFIG.palette.danger);
 }
 
 mountGame({
   title: CONFIG.title,
   description:
-    '2D 전장에서 펼치는 3대3 젬 그래버!\n\n1) 젬 10개를 모아 15초 동안 지키면 승리\n2) 브롤러: 탱커·어쌔신·딜러·저격수·컨트롤러·서포터·투척수\n3) 듀얼 스틱: 살짝=오토에임 / 깊게=수동조준\n4) 가젯·궁극·풀숲 · 약 2~3분',
+    '쉬운 전투로 즐기는 3대3 젬 그래버!\n이동만 해도 가까운 적을 자동으로 조준하고 공격합니다.\n중앙의 젬 10개를 모아 15초 동안 지키세요.\n처음엔 쉘리 추천 · 피해 없이 3초가 지나면 체력이 회복됩니다.',
   controls:
-    '가로 화면 권장 · 왼쪽 스틱 이동 · 오른쪽 살짝 AUTO / 깊게 AIM · 가젯·궁극\nPC: WASD · Space · 클릭 조준 · Q 가젯 · E 궁극 · ESC 쉬기',
+    '휴대폰: 왼쪽 화면 드래그로 이동 · 오른쪽 드래그는 직접 조준(선택)\nPC: WASD·방향키 이동 · 클릭 직접 조준 · Q 가젯 · E 궁극 · ESC 쉬기',
   width: CONFIG.width,
   height: CONFIG.height,
   theme: CONFIG.palette,

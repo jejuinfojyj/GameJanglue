@@ -27,8 +27,8 @@ export const RULES = {
 
 // 키보드 조작. 소문자로 적는다.
 export const KEYS = {
-  turn: ['f', 'arrowleft', 'a'],
-  climb: ['j', 'arrowright', 'd', 'arrowup'],
+  left: ['f', 'arrowleft', 'a'],
+  right: ['j', 'arrowright', 'd'],
 };
 
 // 100계단마다 바뀌는 배경 구간. 순서대로 돌아가며 반복한다.

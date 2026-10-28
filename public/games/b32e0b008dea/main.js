@@ -179,7 +179,12 @@ function drawShortcuts(ctx, cameraProgress) {
     ctx.fillStyle = '#fff7a0';
     ctx.font = '700 13px "Malgun Gothic",sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('↗ 점프', (a.x + b.x) / 2 || a.cx, (a.y + b.y) / 2);
+    ctx.fillText('↗ 지금 점프! 약 2초 단축', (a.x + b.x) / 2 || a.cx, (a.y + b.y) / 2);
+    const landing = worldToScreen(z.land, z.landLane, cameraProgress);
+    if (landing.y > 75 && landing.y < H - 40) {
+      ctx.strokeStyle = '#fff7a0'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(landing.x, landing.y, 22 * landing.scale, 10 * landing.scale, 0, 0, Math.PI * 2); ctx.stroke();
+    }
   }
 }
 
@@ -335,7 +340,7 @@ function drawHud(ctx, state, viewTime) {
   ctx.fillText(`코인 ${state.raceCoins}`, 90, 46);
   const pct = player ? Math.round((player.progress / CONFIG.track.length) * 100) : 0;
   ctx.textAlign = 'right';
-  ctx.fillText(`${pct}%`, W - 26, 46);
+  ctx.fillText(`${Math.floor(state.raceTime)}초 · ${pct}%`, W - 26, 46);
 
   // 미니 순위
   ctx.textAlign = 'left';
@@ -349,6 +354,9 @@ function drawHud(ctx, state, viewTime) {
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
   roundRect(ctx, 12, H - 18, W - 24, 8, 4);
   ctx.fill();
+  const nextShortcut = player && SHORTCUTS.find((z) => player.progress <= z.to);
+  const inShortcut = nextShortcut && player.progress >= nextShortcut.from;
+  const jumpReady = player && !player.airborne && player.jumpCooldown <= 0;
   ctx.fillStyle = P.primary;
   roundRect(ctx, 12, H - 18, (W - 24) * clamp(pct / 100, 0, 1), 8, 4);
   ctx.fill();
@@ -360,14 +368,20 @@ function drawHud(ctx, state, viewTime) {
   ctx.beginPath();
   ctx.arc(jx, jy, 36, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = P.primary;
+  ctx.fillStyle = jumpReady ? (inShortcut ? '#a6ff83' : P.primary) : '#a1b9c4';
   ctx.beginPath();
   ctx.arc(jx, jy, 28, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#3a2a00';
   ctx.font = '800 13px "Malgun Gothic",sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('점프', jx, jy + 5);
+  ctx.fillText(jumpReady ? (inShortcut ? '숏컷!' : '점프') : '착지 중', jx, jy + 5);
+  ctx.fillStyle = 'rgba(4,40,70,0.82)';
+  roundRect(ctx, 16, H - 136, W - 32, 34, 10); ctx.fill();
+  ctx.fillStyle = '#fff7a0'; ctx.font = '700 12px "Malgun Gothic",sans-serif';
+  const jumpHint = inShortcut ? '노란 구간! 지금 점프하면 지름길로 착지' : nextShortcut ?
+    `장애물은 점프 · 다음 숏컷 ${Math.ceil(Math.max(0, nextShortcut.from - player.progress) / CONFIG.rules.baseSpeed)}초 뒤` : '장애물은 점프로 넘고 수영장까지 달려요!';
+  ctx.fillText(jumpHint, W / 2, H - 114);
 
   if (state.toast) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -392,7 +406,9 @@ function drawHud(ctx, state, viewTime) {
     ctx.fill();
     ctx.fillStyle = P.text;
     ctx.font = '700 13px "Malgun Gothic",sans-serif';
-    ctx.fillText(`보유 ${state.save.coins}코인 · 스킨을 눌러 구매/장착`, W / 2, H - 146);
+    ctx.fillText(`약 1분 레이스 · 보유 ${state.save.coins}코인 · 스킨 선택`, W / 2, H - 146);
+    ctx.font = '700 13px "Malgun Gothic",sans-serif';
+    ctx.fillText('장애물은 점프! 노란 구간에서는 지름길!', W / 2, H * 0.46);
     SKINS.forEach((skin, i) => {
       const bx = 28 + i * 68;
       const by = H - 130;
@@ -456,9 +472,9 @@ function render(ctx, state, view) {
 mountGame({
   title: CONFIG.title,
   description:
-    '알록달록 워터슬라이드를 타고 1등으로 수영장에 입수하세요! 좌우로 움직이고, 곡선에서 점프해 지름길을 노려 보세요.',
+    '약 1분 동안 워터슬라이드를 달려 수영장으로 골인하세요! 점프로 장애물을 넘고, 노란 점프 구간 6곳에서는 지름길로 약 2초씩 단축할 수 있어요.',
   controls:
-    '터치: 좌우 드래그로 이동, 오른쪽 아래 점프 버튼 · PC: ←→ 또는 A/D 이동, 스페이스/↑ 점프 · 경쟁자를 밀쳐 내고 가속 패드를 밟으세요. 슬라이드 밖으로 떨어지면 아웃!',
+    '터치: 좌우 드래그로 이동, 오른쪽 아래 점프 버튼 · PC: ←→ 또는 A/D 이동, 스페이스/↑ 점프 · 빨간 장애물은 점프로 회피, 노란 구간은 점프 지름길, 초록 패드는 가속! 가장자리를 조심하세요.',
   width: W,
   height: H,
   theme: {

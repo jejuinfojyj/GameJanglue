@@ -163,18 +163,27 @@ function drawBoard(ctx, state) {
       ctx.fill();
     }
   }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(origin.x - 2, origin.y - 2, size + 4, size + 4);
+  ctx.clip();
   for (const visual of tileVisuals(state)) {
     const x = origin.x + visual.c * step;
     const y = origin.y + visual.r * step;
+    ctx.save();
+    ctx.globalAlpha = visual.alpha ?? 1;
+    const scale = visual.scale ?? 1;
+    ctx.translate(x + CONFIG.cell / 2, y + CONFIG.cell / 2);
+    ctx.scale(scale, scale);
     if (visual.moving) {
-      ctx.save();
       ctx.shadowColor = '#00000080';
       ctx.shadowBlur = 12;
       ctx.shadowOffsetY = 4;
     }
-    drawGem(ctx, x, y, CONFIG.cell, visual.tile, visual.selected);
-    if (visual.moving) ctx.restore();
+    drawGem(ctx, -CONFIG.cell / 2, -CONFIG.cell / 2, CONFIG.cell, visual.tile, visual.selected);
+    ctx.restore();
   }
+  ctx.restore();
 }
 
 function drawFx(ctx, state) {
@@ -245,10 +254,11 @@ function drawPuzzleChrome(ctx, state, view) {
   ctx.fillStyle = CONFIG.palette.muted;
   ctx.font = '500 13px "Malgun Gothic", "Apple SD Gothic Neo", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('보석을 끌어 바꾸거나 이웃을 눌러 맞추세요 · 특수 보석은 다시 눌러 발동', view.width / 2, 620);
+  const phaseText = { clear: '맞춘 보석을 지우는 중', fall: '보석이 내려오는 중', refill: '새 보석을 채우는 중', shuffle: '가능한 이동을 찾고 있어요' };
+  ctx.fillText(state.busy ? (phaseText[state.resolution?.phase] || '보석을 바꾸는 중') : '보석을 끌거나 이웃을 누르세요 · 특수 보석은 다시 눌러 발동', view.width / 2, 620);
 
   const rects = uiRects();
-  drawButton(ctx, rects.kingdom, '왕국 꾸미기');
+  drawButton(ctx, rects.kingdom, '왕국 꾸미기', !state.busy);
 }
 
 function drawCastle(ctx, state, view) {

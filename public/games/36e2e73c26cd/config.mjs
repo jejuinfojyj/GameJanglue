@@ -11,9 +11,9 @@ export const CONFIG = {
     /** 스틱/오토에임 조준 */
     stickAimTurn: 12,
     /** WASD·이동 입력 가속 보간 */
-    moveAccel: 4.5,
+    moveAccel: 20,
     /** 이동 최고 속도 배율(1=기본) */
-    moveScale: 0.82,
+    moveScale: 1,
   },
   palette: {
     background: '#1a4d2e',
@@ -29,9 +29,15 @@ export const CONFIG = {
     gem: '#b14dff',
   },
   rules: {
+    playerHpMultiplier: 1.2,
+    playerDamageMultiplier: 1.15,
+    enemyDamageMultiplier: 0.72,
+    enemySpeedMultiplier: 0.9,
+    recoveryDelay: 3,
+    recoveryPerSecond: 0.12,
     gemWinCount: 10,
     holdSeconds: 15,
-    gemSpawnEvery: 2.2,
+    gemSpawnEvery: 2.8,
     maxGemsOnField: 14,
     respawnSeconds: 3,
     matchSeconds: 150,

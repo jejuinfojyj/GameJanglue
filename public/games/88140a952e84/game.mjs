@@ -145,10 +145,10 @@ function resolvePair(a, b) {
     dy = 0;
     dist = 1;
   }
-  if (dist >= min) return;
+  if (dist > min + 0.08) return;
   const nx = dx / dist;
   const ny = dy / dist;
-  const overlap = min - dist;
+  const overlap = Math.max(0, min - dist - 0.01);
   const massA = ar * ar;
   const massB = br * br;
   const total = massA + massB;
@@ -158,33 +158,55 @@ function resolvePair(a, b) {
   b.y += ny * overlap * (massA / total);
   const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
   if (rv < 0) {
-    const impulse = -(1 + CONFIG.physics.restitution) * rv / (1 / massA + 1 / massB);
+    // Resting contacts must cancel gravity without adding a new bounce each pass.
+    const bounce = rv < -90 ? CONFIG.physics.restitution : 0;
+    const inverseMass = 1 / massA + 1 / massB;
+    const impulse = -(1 + bounce) * rv / inverseMass;
     a.vx -= (impulse * nx) / massA;
     a.vy -= (impulse * ny) / massA;
     b.vx += (impulse * nx) / massB;
     b.vy += (impulse * ny) / massB;
+    // Friction is limited by the actual normal impulse. A fixed percentage per
+    // solver pass erased sliding motion even in a barely glancing collision.
+    const tx = -ny;
+    const ty = nx;
+    const tangent = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty;
+    const friction = Math.max(-impulse * 0.035, Math.min(impulse * 0.035, -tangent / inverseMass));
+    a.vx -= friction * tx / massA;
+    a.vy -= friction * ty / massA;
+    b.vx += friction * tx / massB;
+    b.vy += friction * ty / massB;
     if (Math.abs(rv) > 80) {
       a.squash = Math.max(a.squash, 0.08);
       b.squash = Math.max(b.squash, 0.08);
     }
   }
-  const tx = -ny;
-  const ty = nx;
-  const tangent = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty;
-  const damp = tangent * 0.18;
-  a.vx += damp * tx * (massB / total);
-  a.vy += damp * ty * (massB / total);
-  b.vx -= damp * tx * (massA / total);
-  b.vy -= damp * ty * (massA / total);
 }
 
 function physics(state, dt) {
   const { gravity, iterations, maxSpeed } = CONFIG.physics;
   const { left, right, floor } = CONFIG.box;
   const fruits = state.fruits;
+  const walls = (fruit, floorFriction = false) => {
+    const radius = FRUITS[fruit.type].radius;
+    if (fruit.x - radius < left) {
+      fruit.x = left + radius;
+      if (fruit.vx < 0) fruit.vx *= fruit.vx < -90 ? -CONFIG.physics.restitution : 0;
+    }
+    if (fruit.x + radius > right) {
+      fruit.x = right - radius;
+      if (fruit.vx > 0) fruit.vx *= fruit.vx > 90 ? -CONFIG.physics.restitution : 0;
+    }
+    if (fruit.y + radius >= floor - 0.02) {
+      fruit.y = Math.min(fruit.y, floor - radius);
+      if (fruit.vy > 90) fruit.squash = Math.max(fruit.squash, 0.1);
+      if (fruit.vy > 0) fruit.vy *= fruit.vy > 90 ? -CONFIG.physics.restitution : 0;
+      if (floorFriction) fruit.vx *= Math.exp(-6 * dt);
+    }
+  };
   for (const fruit of fruits) {
     fruit.vy = Math.min(maxSpeed, fruit.vy + gravity * dt);
-    fruit.vx *= Math.exp(-0.7 * dt);
+    fruit.vx *= Math.exp(-0.25 * dt);
     fruit.x += fruit.vx * dt;
     fruit.y += fruit.vy * dt;
     fruit.age += dt;
@@ -192,36 +214,15 @@ function physics(state, dt) {
     fruit.squash = Math.max(0, fruit.squash - dt);
   }
   for (let step = 0; step < iterations; step++) {
-    for (const fruit of fruits) {
-      const radius = FRUITS[fruit.type].radius;
-      if (fruit.x - radius < left) {
-        fruit.x = left + radius;
-        if (fruit.vx < 0) fruit.vx *= -CONFIG.physics.restitution;
-      }
-      if (fruit.x + radius > right) {
-        fruit.x = right - radius;
-        if (fruit.vx > 0) fruit.vx *= -CONFIG.physics.restitution;
-      }
-      if (fruit.y + radius > floor) {
-        fruit.y = floor - radius;
-        if (fruit.vy > 50) fruit.squash = Math.max(fruit.squash, 0.1);
-        if (fruit.vy > 0) fruit.vy *= -CONFIG.physics.restitution;
-        fruit.vx *= 0.88;
-      }
-    }
+    for (const fruit of fruits) walls(fruit);
     for (let i = 0; i < fruits.length; i++) {
       for (let j = i + 1; j < fruits.length; j++) resolvePair(fruits[i], fruits[j]);
     }
   }
-  for (const fruit of fruits) {
-    const radius = FRUITS[fruit.type].radius;
-    const supported = fruit.y + radius >= floor - 2
-      || fruits.some((other) => other !== fruit && other.y > fruit.y && Math.hypot(other.x - fruit.x, other.y - fruit.y) < FRUITS[other.type].radius + radius + 3);
-    if (supported && Math.abs(fruit.vy) < 36 && Math.abs(fruit.vx) < 24) {
-      fruit.vx = 0;
-      fruit.vy = 0;
-    }
-  }
+  // The last pair can push a fruit through a wall, so finish on the boundaries.
+  // Contact impulses settle stacks; proximity to a lower fruit is not a reason
+  // to freeze a body (it must still be able to roll off a curved surface).
+  for (const fruit of fruits) walls(fruit, true);
 }
 
 function keepInside(fruit) {
@@ -263,7 +264,7 @@ function mergeFruits(state) {
       x: (pair.a.x * massA + pair.b.x * massB) / (massA + massB),
       y: (pair.a.y * massA + pair.b.y * massB) / (massA + massB),
       vx: (pair.a.vx * massA + pair.b.vx * massB) / (massA + massB),
-      vy: (pair.a.vy * massA + pair.b.vy * massB) / (massA + massB) - 70,
+      vy: (pair.a.vy * massA + pair.b.vy * massB) / (massA + massB),
       age: 0,
       pop: 1,
       squash: 0,

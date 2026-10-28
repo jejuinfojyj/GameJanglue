@@ -1,6 +1,7 @@
-# Keep only the Pages site and project notes in the repository root.
+# Keep the Pages site, regression checks and project notes in the repository root.
 /*
 !/.gitignore
 !/LICENSE
 !/README.md
 !/public/
+!/tests/
